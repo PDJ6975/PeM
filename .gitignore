@@ -1,12 +1,29 @@
 # Entorno
 .venv/
+venv/
+env/
+ENV/
+*.env
 .env
+*.local
+settings_local.py
+
+# BDD local
+
+db.sqlite3
+
+# Migraciones
+
+**/migrations/__pycache__/
+**/migrations/*.pyc
 
 # Archivos python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.sqlite3
+*.db
 
 # Archivos temporales
 *.log
@@ -17,8 +34,8 @@ Thumbs.db
 
 # Archivos de VSCode
 .vscode/
+*.code-workspace
 
 # Archivos de compilacion/despliegue
-*.env
 *.bak
 *.zip
