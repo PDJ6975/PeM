@@ -1,0 +1,24 @@
+# Entorno
+.venv/
+.env
+
+# Archivos python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Archivos temporales
+*.log
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de VSCode
+.vscode/
+
+# Archivos de compilacion/despliegue
+*.env
+*.bak
+*.zip
