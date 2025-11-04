@@ -82,6 +82,11 @@ DATABASES = {
 
 AUTH_USER_MODEL = 'core.Cliente'
 
+AUTHENTICATION_BACKENDS = [
+    'core.auth_backend.EmailBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
