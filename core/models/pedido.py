@@ -13,15 +13,9 @@ class Pedido(models.Model):
     ESTADO_CHOICES = [
         ('pendiente', 'Pendiente'),
         ('confirmado', 'Confirmado'),
-        ('procesando', 'Procesando'),
         ('enviado', 'Enviado'),
         ('entregado', 'Entregado'),
         ('cancelado', 'Cancelado'),
-    ]
-
-    METODO_PAGO_CHOICES = [
-        ('tarjeta_credito', 'Tarjeta de Crédito'),
-        ('stripe', 'Stripe'),
     ]
 
     # Relación con cliente
@@ -90,11 +84,19 @@ class Pedido(models.Model):
         help_text='Total final del pedido'
     )
 
-    # Información de pago
-    metodo_pago = models.CharField(
-        max_length=20,
-        choices=METODO_PAGO_CHOICES,
-        help_text='Método de pago utilizado'
+    # Campos específicos para Stripe
+    stripe_payment_intent_id = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text='ID del PaymentIntent de Stripe'
+    )
+
+    stripe_session_id = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text='ID de la sesión de Checkout de Stripe'
     )
 
     # Información de envío
@@ -134,9 +136,13 @@ class Pedido(models.Model):
     def save(self, *args, **kwargs):
         """
         Genera automáticamente el número de pedido si no existe.
+        Calcula automáticamente el total del pedido.
         """
         if not self.numero_pedido:
             self.numero_pedido = self.generar_numero_pedido()
+        
+        self.total = self.calcular_total()
+        
         super().save(*args, **kwargs)
 
     def generar_numero_pedido(self):
@@ -158,3 +164,57 @@ class Pedido(models.Model):
         Calcula el total del pedido: subtotal + impuestos + envío - descuento.
         """
         return self.subtotal + self.impuestos + self.coste_entrega - self.descuento
+
+    def puede_cancelar(self):
+        """
+        Verifica si el pedido puede ser cancelado por el administrador.
+        Solo los pedidos pendientes o confirmados pueden cancelarse.
+        """
+        return self.estado in ['pendiente', 'confirmado']
+
+    def puede_modificar(self):
+        """
+        Verifica si el pedido puede ser modificado por el administrador.
+        Solo los pedidos pendientes pueden modificarse.
+        """
+        return self.estado == 'pendiente'
+
+    def cancelar_pedido(self):
+        """
+        Cancela el pedido si es posible.
+        """
+        if self.puede_cancelar():
+            self.estado = 'cancelado'
+            self.save()
+            return True
+        return False
+
+    def confirmar_pedido(self):
+        """
+        Confirma el pedido si está pendiente.
+        """
+        if self.estado == 'pendiente':
+            self.estado = 'confirmado'
+            self.save()
+            return True
+        return False
+
+    def marcar_como_enviado(self):
+        """
+        Marca el pedido como enviado si está confirmado.
+        """
+        if self.estado == 'confirmado':
+            self.estado = 'enviado'
+            self.save()
+            return True
+        return False
+
+    def marcar_como_entregado(self):
+        """
+        Marca el pedido como entregado si está enviado.
+        """
+        if self.estado == 'enviado':
+            self.estado = 'entregado'
+            self.save()
+            return True
+        return False
