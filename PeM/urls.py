@@ -17,6 +17,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+# Personalización del admin para branding
+admin.site.site_header = "PeM - Administración"
+admin.site.site_title = "PeM Admin"
+admin.site.index_title = "Panel de Administración - Juguetes para Mascotas"
+
 urlpatterns = [
     path('admin/', admin.site.urls),
 ]
