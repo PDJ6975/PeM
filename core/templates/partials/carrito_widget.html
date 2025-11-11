@@ -1,0 +1,42 @@
+{% load static %}
+
+<!-- Widget del carrito (siempre visible) -->
+<div class="carrito-widget" id="carritoWidget">
+    <button class="btn btn-primary rounded-circle carrito-btn" type="button" data-bs-toggle="offcanvas"
+            data-bs-target="#carritoOffcanvas" aria-controls="carritoOffcanvas">
+        <i class="bi bi-cart3"></i>
+        <span class="badge bg-danger carrito-badge" id="carritoBadge">0</span>
+    </button>
+</div>
+
+<!-- Offcanvas del carrito (panel lateral) -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="carritoOffcanvas" aria-labelledby="carritoOffcanvasLabel">
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title" id="carritoOffcanvasLabel">
+            <i class="bi bi-cart3"></i> Mi Carrito
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+
+    <div class="offcanvas-body p-0">
+        <!-- Contenido del carrito -->
+        <div id="carritoContenido">
+            <!-- Aquí se cargarán los productos del carrito dinámicamente -->
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-cart-x display-1"></i>
+                <p class="mt-3">Tu carrito está vacío</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer del carrito con total y botón de checkout -->
+    <div class="offcanvas-footer border-top p-3">
+        <div class="d-flex justify-content-between mb-3">
+            <span class="fw-bold">Total:</span>
+            <span class="fw-bold text-primary" id="carritoTotal">0,00 €</span>
+        </div>
+        <button class="btn btn-primary w-100" id="btnProcesarPedido">
+            <i class="bi bi-credit-card"></i> Procesar Pedido
+        </button>
+    </div>
+</div>
