@@ -7,6 +7,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
+from django.contrib.auth import logout
+from django.contrib.auth import login as django_login
 import json
 
 from core.services import carrito as carrito_service
@@ -17,6 +19,15 @@ def home(request):
     """Vista de la página de inicio"""
     return render(request, 'core/index.html')
 
+def login_page(request):
+    return render(request, 'core/login.html')
+
+def register_page(request):
+    return render(request, 'core/register.html')
+
+def logout_view(request):
+    logout(request)
+    return redirect('home')
 
 # ============================================
 # API REST para el Carrito
@@ -521,6 +532,10 @@ class LoginView(View):
 
             if not cliente:
                 return JsonResponse({"error": "Credenciales inválidas"}, status=401)
+            
+
+            django_login(request, cliente)
+
 
             return JsonResponse({
                 "success": True,

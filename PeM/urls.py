@@ -32,6 +32,11 @@ urlpatterns = [
     # Página principal
     path('', views.home, name='home'),
 
+    # Autenticación de usuarios
+    path('login/', views.login_page, name='login'),
+    path('register/', views.register_page, name='register'),
+    path('logout/', views.logout_view, name='logout'),
+
     # API REST - Carrito
     path('api/carrito/', views.ObtenerCarritoView.as_view(), name='api_carrito_obtener'),
     path('api/carrito/agregar/', views.AgregarProductoView.as_view(), name='api_carrito_agregar'),

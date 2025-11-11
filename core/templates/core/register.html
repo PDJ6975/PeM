@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Registro - PeM{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h2 class="text-center mb-4">Crear cuenta</h2>
+
+            <form id="registerForm" class="card p-4 shadow-sm">
+                <div class="mb-3">
+                    <label class="form-label">Nombre</label>
+                    <input type="text" class="form-control" id="nombre" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Apellidos</label>
+                    <input type="text" class="form-control" id="apellidos" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Contraseña</label>
+                    <input type="password" class="form-control" id="password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Registrarse</button>
+            </form>
+
+            <div id="mensaje" class="mt-3 text-center"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById("registerForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = {
+        nombre: document.getElementById("nombre").value,
+        apellidos: document.getElementById("apellidos").value,
+        email: document.getElementById("email").value,
+        password: document.getElementById("password").value
+    };
+
+    const mensaje = document.getElementById("mensaje");
+    mensaje.textContent = "Enviando...";
+
+    const res = await fetch("/api/auth/register/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    });
+
+    const json = await res.json();
+
+    if (res.ok && json.success) {
+        mensaje.innerHTML = `<div class="alert alert-success">✅ ${json.mensaje}</div>`;
+        setTimeout(() => window.location.href = "/login/", 1500);
+    } else {
+        mensaje.innerHTML = `<div class="alert alert-danger">❌ ${json.error || "Error al registrar usuario"}</div>`;
+    }
+});
+</script>
+{% endblock %}
