@@ -1,13 +1,16 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.views import View
 from django.views.decorators.http import require_http_methods
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib import messages
 import json
 
 from core.services import carrito as carrito_service
+from core.services.pedido import PedidoService
 
 
 def home(request):
@@ -300,3 +303,131 @@ class VaciarCarritoView(CarritoBaseView):
                 status=500,
                 detalle=str(e) if request.user.is_staff else None
             )
+
+
+# ============================================
+# API REST para Gestión de Pedidos (Admin)
+# ============================================
+
+@staff_member_required
+def admin_pedidos_lista(request):
+    """
+    GET /api/admin/pedidos/
+    Lista todos los pedidos con filtros opcionales.
+    
+    Query params opcionales:
+        - estado: filtrar por estado del pedido
+        - fecha_desde: filtrar desde fecha
+        - fecha_hasta: filtrar hasta fecha
+        - cliente_email: filtrar por email del cliente
+    """
+    filtros = {
+        'estado': request.GET.get('estado'),
+        'fecha_desde': request.GET.get('fecha_desde'),
+        'fecha_hasta': request.GET.get('fecha_hasta'),
+        'cliente_email': request.GET.get('cliente_email'),
+    }
+    
+    # Eliminar filtros vacíos
+    filtros = {k: v for k, v in filtros.items() if v}
+    
+    pedidos = PedidoService.obtener_pedidos_admin(filtros)
+    estadisticas = PedidoService.obtener_estadisticas_pedidos()
+    
+    context = {
+        'pedidos': pedidos,
+        'estadisticas': estadisticas,
+        'filtros': filtros,
+    }
+    
+    return render(request, 'core/admin/pedidos_lista.html', context)
+
+
+@staff_member_required
+def admin_pedido_detalle(request, pedido_id):
+    """
+    GET /api/admin/pedidos/<pedido_id>/
+    Obtiene el detalle completo de un pedido específico.
+    """
+    pedido = PedidoService.obtener_detalle_pedido(pedido_id)
+    
+    if not pedido:
+        messages.error(request, 'Pedido no encontrado')
+        return redirect('admin_pedidos_lista')
+    
+    context = {
+        'pedido': pedido,
+    }
+    
+    return render(request, 'core/admin/pedido_detalle.html', context)
+
+
+@staff_member_required
+def admin_pedido_cambiar_estado(request, pedido_id):
+    """
+    POST /api/admin/pedidos/<pedido_id>/cambiar-estado/
+    Cambia el estado de un pedido.
+    
+    POST params:
+        - estado: nuevo estado del pedido (pendiente|procesando|enviado|entregado|cancelado)
+    """
+    if request.method == 'POST':
+        nuevo_estado = request.POST.get('estado')
+        
+        if not nuevo_estado:
+            messages.error(request, 'Debe seleccionar un estado')
+            return redirect('admin_pedido_detalle', pedido_id=pedido_id)
+        
+        exito, resultado = PedidoService.cambiar_estado_pedido(pedido_id, nuevo_estado)
+        
+        if exito:
+            messages.success(request, f'Estado del pedido actualizado a {nuevo_estado}')
+        else:
+            messages.error(request, f'Error al cambiar estado: {resultado}')
+        
+        return redirect('admin_pedido_detalle', pedido_id=pedido_id)
+    
+    return redirect('admin_pedidos_lista')
+
+
+@staff_member_required
+def admin_pedido_cancelar(request, pedido_id):
+    """
+    POST /api/admin/pedidos/<pedido_id>/cancelar/
+    Cancela un pedido y restaura el stock de los productos.
+    
+    POST params:
+        - motivo: motivo de la cancelación (opcional)
+    """
+    if request.method == 'POST':
+        motivo = request.POST.get('motivo', 'Cancelado por el administrador')
+        exito, resultado = PedidoService.cancelar_pedido(pedido_id, motivo)
+        
+        if exito:
+            messages.success(request, 'Pedido cancelado correctamente. Stock restaurado.')
+        else:
+            messages.error(request, f'Error al cancelar: {resultado}')
+        
+        return redirect('admin_pedidos_lista')
+    
+    return redirect('admin_pedido_detalle', pedido_id=pedido_id)
+
+
+@staff_member_required
+def admin_pedidos_estadisticas(request):
+    """
+    GET /api/admin/pedidos/estadisticas/
+    Muestra las estadísticas de pedidos en formato HTML.
+    """
+    estadisticas = PedidoService.obtener_estadisticas_pedidos()
+    
+    # Si se solicita JSON (para APIs), devolver JSON
+    if request.GET.get('format') == 'json':
+        return JsonResponse(estadisticas)
+    
+    # Por defecto, mostrar HTML
+    context = {
+        'estadisticas': estadisticas,
+    }
+    
+    return render(request, 'core/admin/pedidos_estadisticas.html', context)

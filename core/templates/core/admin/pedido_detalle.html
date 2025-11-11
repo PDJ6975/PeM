@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Pedido #{{ pedido.id }}</h1>
+        <a href="{% url 'admin_pedidos_lista' %}" class="btn btn-secondary">← Volver a la lista</a>
+    </div>
+    
+    <!-- Información del pedido -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Información del Pedido</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>ID:</strong> #{{ pedido.id }}</p>
+                    <p><strong>Fecha:</strong> {{ pedido.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                    <p><strong>Estado:</strong> 
+                        {% if pedido.estado == 'pendiente' %}
+                            <span class="badge bg-warning">Pendiente</span>
+                        {% elif pedido.estado == 'procesando' %}
+                            <span class="badge bg-info">Procesando</span>
+                        {% elif pedido.estado == 'enviado' %}
+                            <span class="badge bg-primary">Enviado</span>
+                        {% elif pedido.estado == 'entregado' %}
+                            <span class="badge bg-success">Entregado</span>
+                        {% elif pedido.estado == 'cancelado' %}
+                            <span class="badge bg-danger">Cancelado</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Total:</strong> {{ pedido.total }}€</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Información del Cliente</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Email:</strong> {{ pedido.cliente.email }}</p>
+                    <p><strong>Nombre:</strong> {{ pedido.cliente.nombre }} {{ pedido.cliente.apellidos }}</p>
+                    {% if pedido.cliente.telefono %}
+                    <p><strong>Teléfono:</strong> {{ pedido.cliente.telefono }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Productos del pedido -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Productos</h5>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Precio Unitario</th>
+                        <th>Cantidad</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in pedido.items.all %}
+                    <tr>
+                        <td>{{ item.producto.nombre }}</td>
+                        <td>{{ item.precio_unitario }}€</td>
+                        <td>{{ item.cantidad }}</td>
+                        <td>{{ item.subtotal }}€</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                        <td><strong>{{ pedido.total }}€</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Acciones -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Acciones</h5>
+        </div>
+        <div class="card-body">
+            {% if pedido.estado != 'cancelado' and pedido.estado != 'entregado' %}
+            <form method="post" action="{% url 'admin_pedido_cambiar_estado' pedido.id %}" class="d-inline">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-6">
+                        <label>Cambiar Estado</label>
+                        <select name="estado" class="form-control" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="pendiente" {% if pedido.estado == 'pendiente' %}disabled{% endif %}>Pendiente</option>
+                            <option value="procesando" {% if pedido.estado == 'procesando' %}disabled{% endif %}>Procesando</option>
+                            <option value="enviado" {% if pedido.estado == 'enviado' %}disabled{% endif %}>Enviado</option>
+                            <option value="entregado" {% if pedido.estado == 'entregado' %}disabled{% endif %}>Entregado</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary">Actualizar Estado</button>
+                    </div>
+                </div>
+            </form>
+            
+            <hr>
+            
+            <form method="post" action="{% url 'admin_pedido_cancelar' pedido.id %}" onsubmit="return confirm('¿Estás seguro de cancelar este pedido? Se restaurará el stock.');">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-8">
+                        <label>Motivo de Cancelación</label>
+                        <input type="text" name="motivo" class="form-control" placeholder="Motivo de la cancelación">
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-danger">Cancelar Pedido</button>
+                    </div>
+                </div>
+            </form>
+            {% else %}
+            <div class="alert alert-info">
+                Este pedido no puede ser modificado porque está {{ pedido.get_estado_display|lower }}.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

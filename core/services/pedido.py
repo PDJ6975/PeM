@@ -34,13 +34,13 @@ class PedidoService:
             if filtros.get('estado'):
                 queryset = queryset.filter(estado=filtros['estado'])
             if filtros.get('fecha_desde'):
-                queryset = queryset.filter(fecha_pedido__gte=filtros['fecha_desde'])
+                queryset = queryset.filter(fecha_creacion__gte=filtros['fecha_desde'])
             if filtros.get('fecha_hasta'):
-                queryset = queryset.filter(fecha_pedido__lte=filtros['fecha_hasta'])
+                queryset = queryset.filter(fecha_creacion__lte=filtros['fecha_hasta'])
             if filtros.get('cliente_email'):
                 queryset = queryset.filter(cliente__email__icontains=filtros['cliente_email'])
         
-        return queryset.order_by('-fecha_pedido')
+        return queryset.order_by('-fecha_creacion')
     
     @staticmethod
     def obtener_detalle_pedido(pedido_id):
@@ -120,9 +120,9 @@ class PedidoService:
             'pedidos_pendientes': Pedido.objects.filter(estado='pendiente').count(),
             'pedidos_procesando': Pedido.objects.filter(estado='procesando').count(),
             'pedidos_enviados': Pedido.objects.filter(estado='enviado').count(),
-            'pedidos_mes': Pedido.objects.filter(fecha_pedido__gte=hace_30_dias).count(),
+            'pedidos_mes': Pedido.objects.filter(fecha_creacion__gte=hace_30_dias).count(),
             'ingresos_mes': Pedido.objects.filter(
-                fecha_pedido__gte=hace_30_dias,
+                fecha_creacion__gte=hace_30_dias,
                 estado__in=['procesando', 'enviado', 'entregado']
             ).aggregate(total=Sum('total'))['total'] or 0,
         }

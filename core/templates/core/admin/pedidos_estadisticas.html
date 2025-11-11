@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Estadísticas de Pedidos</h1>
+        <a href="{% url 'admin_pedidos_lista' %}" class="btn btn-secondary">← Ver Lista de Pedidos</a>
+    </div>
+    
+    <!-- Estadísticas Generales -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">📊 Resumen General</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-2">
+                            <div class="p-3 border rounded">
+                                <h6 class="text-muted mb-2">Total Pedidos</h6>
+                                <h2 class="text-primary mb-0">{{ estadisticas.total_pedidos }}</h2>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="p-3 border rounded">
+                                <h6 class="text-muted mb-2">Pendientes</h6>
+                                <h2 class="text-warning mb-0">{{ estadisticas.pedidos_pendientes }}</h2>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="p-3 border rounded">
+                                <h6 class="text-muted mb-2">Procesando</h6>
+                                <h2 class="text-info mb-0">{{ estadisticas.pedidos_procesando }}</h2>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="p-3 border rounded">
+                                <h6 class="text-muted mb-2">Enviados</h6>
+                                <h2 class="text-primary mb-0">{{ estadisticas.pedidos_enviados }}</h2>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="p-3 border rounded">
+                                <h6 class="text-muted mb-2">Pedidos (30d)</h6>
+                                <h2 class="text-success mb-0">{{ estadisticas.pedidos_mes }}</h2>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="p-3 border rounded">
+                                <h6 class="text-muted mb-2">Ingresos (30d)</h6>
+                                <h2 class="text-success mb-0">{{ estadisticas.ingresos_mes|floatformat:2 }}€</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráfico Visual de Estados -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>📈 Distribución por Estado</h5>
+                </div>
+                <div class="card-body">
+                    {% if estadisticas.total_pedidos > 0 %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Pendientes</span>
+                            <span><strong>{{ estadisticas.pedidos_pendientes }}</strong> ({% widthratio estadisticas.pedidos_pendientes estadisticas.total_pedidos 100 %}%)</span>
+                        </div>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: {% widthratio estadisticas.pedidos_pendientes estadisticas.total_pedidos 100 %}%">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Procesando</span>
+                            <span><strong>{{ estadisticas.pedidos_procesando }}</strong> ({% widthratio estadisticas.pedidos_procesando estadisticas.total_pedidos 100 %}%)</span>
+                        </div>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: {% widthratio estadisticas.pedidos_procesando estadisticas.total_pedidos 100 %}%">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Enviados</span>
+                            <span><strong>{{ estadisticas.pedidos_enviados }}</strong> ({% widthratio estadisticas.pedidos_enviados estadisticas.total_pedidos 100 %}%)</span>
+                        </div>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: {% widthratio estadisticas.pedidos_enviados estadisticas.total_pedidos 100 %}%">
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        No hay pedidos registrados aún.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>💰 Resumen Financiero</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tbody>
+                            <tr>
+                                <td><strong>Ingresos Últimos 30 días:</strong></td>
+                                <td class="text-end">
+                                    <h4 class="text-success mb-0">{{ estadisticas.ingresos_mes|floatformat:2 }}€</h4>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Pedidos del mes:</strong></td>
+                                <td class="text-end">
+                                    <h4 class="text-info mb-0">{{ estadisticas.pedidos_mes }}</h4>
+                                </td>
+                            </tr>
+                            {% if estadisticas.pedidos_mes > 0 %}
+                            <tr>
+                                <td><strong>Ticket promedio:</strong></td>
+                                <td class="text-end">
+                                    <h4 class="text-primary mb-0">{% widthratio estadisticas.ingresos_mes estadisticas.pedidos_mes 1 %}€</h4>
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                    
+                    {% if estadisticas.total_pedidos > 0 %}
+                    <hr>
+                    <div class="alert alert-success">
+                        <strong>📊 Tasa de pedidos activos:</strong><br>
+                        {{ estadisticas.pedidos_pendientes|add:estadisticas.pedidos_procesando|add:estadisticas.pedidos_enviados }} de {{ estadisticas.total_pedidos }} pedidos en proceso
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Acciones Rápidas -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🔧 Acciones Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'admin_pedidos_lista' %}" class="btn btn-primary">
+                            📋 Ver Todos los Pedidos
+                        </a>
+                        <a href="{% url 'admin_pedidos_lista' %}?estado=pendiente" class="btn btn-warning">
+                            ⏳ Ver Pendientes
+                        </a>
+                        <a href="{% url 'admin_pedidos_lista' %}?estado=procesando" class="btn btn-info">
+                            🔄 Ver En Proceso
+                        </a>
+                        <a href="{% url 'admin_pedidos_estadisticas' %}?format=json" class="btn btn-secondary" target="_blank">
+                            📥 Exportar JSON
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Nota informativa -->
+    <div class="alert alert-info mt-4">
+        <strong>ℹ️ Nota:</strong> Las estadísticas se calculan en tiempo real basándose en todos los pedidos del sistema. 
+        Los ingresos incluyen solo pedidos en estado: procesando, enviado y entregado.
+    </div>
+</div>
+{% endblock %}
