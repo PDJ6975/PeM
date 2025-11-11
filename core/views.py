@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.views import View
 from django.views.decorators.http import require_http_methods
 from django.utils.decorators import method_decorator
@@ -537,47 +537,10 @@ class LoginView(View):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class ConsultaPedidoSinCuentaView(View):
+class SeguimientoPedidoView(View):
     """
-    POST /api/pedidos/consulta/
-    Consulta el estado de un pedido sin necesidad de tener cuenta.
-
-    Body (JSON):
-        {
-            "email": "test@example.com",
-            "codigo_pedido": "PED12345"
-        }
-
-    Respuesta (200):
-        {
-            "success": true,
-            "pedido": {...}
-        }
+    Vista temporal para seguimiento de pedidos.
+    Se reemplazará por una versión completa en una futura rama.
     """
-
-    def post(self, request):
-        try:
-            data = json.loads(request.body)
-            email = data.get("email")
-            codigo = data.get("codigo_pedido")
-
-            if not email or not codigo:
-                return JsonResponse({"error": "Email y código del pedido son obligatorios"}, status=400)
-
-            from core.models.pedido import Pedido
-            pedido = Pedido.objects.filter(email=email, codigo=codigo).first()
-
-            if not pedido:
-                return JsonResponse({"error": "Pedido no encontrado"}, status=404)
-
-            return JsonResponse({
-                "success": True,
-                "pedido": {
-                    "codigo": pedido.codigo,
-                    "estado": pedido.estado,
-                    "fecha": pedido.fecha_creacion,
-                }
-            })
-
-        except Exception as e:
-            return JsonResponse({"error": "Error interno del servidor", "detalle": str(e)}, status=500)
+    def get(self, request, tracking_token):
+        return HttpResponse(f"Seguimiento temporal del pedido: {tracking_token}")
