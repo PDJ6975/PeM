@@ -1,0 +1,149 @@
+/* ======================
+   Variables CSS
+   ====================== */
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+    --light-color: #f8f9fa;
+    --dark-color: #212529;
+}
+
+/* ======================
+   Reset y General
+   ====================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main.main-content {
+    flex: 1;
+    padding: 2rem 0;
+}
+
+/* ======================
+   Navbar
+   ====================== */
+.navbar-brand {
+    font-size: 1.5rem;
+    transition: transform 0.3s ease;
+}
+
+.navbar-brand:hover {
+    transform: scale(1.05);
+}
+
+.nav-link {
+    transition: color 0.3s ease;
+    font-weight: 500;
+}
+
+.nav-link:hover {
+    color: var(--primary-color) !important;
+}
+
+/* ======================
+   Widget del Carrito
+   ====================== */
+.carrito-widget {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 1040;
+}
+
+.carrito-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+}
+
+.carrito-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.carrito-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    padding: 0.35em 0.5em;
+    font-size: 0.75rem;
+    border: 2px solid white;
+}
+
+/* ======================
+   Offcanvas del Carrito
+   ====================== */
+.offcanvas {
+    width: 400px !important;
+}
+
+.offcanvas-footer {
+    background-color: var(--light-color);
+}
+
+/* ======================
+   Footer
+   ====================== */
+footer {
+    margin-top: auto;
+}
+
+footer a:hover {
+    color: white !important;
+    text-decoration: underline !important;
+}
+
+/* ======================
+   Utilidades
+   ====================== */
+.shadow-sm {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
+
+.transition-all {
+    transition: all 0.3s ease;
+}
+
+/* ======================
+   Responsive
+   ====================== */
+@media (max-width: 768px) {
+    .carrito-widget {
+        bottom: 1rem;
+        right: 1rem;
+    }
+
+    .carrito-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 1.25rem;
+    }
+
+    .offcanvas {
+        width: 100% !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .main-content {
+        padding: 1rem 0;
+    }
+}

@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Inicio - PeM | Juguetes para Mascotas{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="bg-primary text-white rounded p-5 text-center">
+                <h1 class="display-4 fw-bold mb-3">
+                    <i class="bi bi-shop"></i> Bienvenido a PeM
+                </h1>
+                <p class="lead">
+                    Tu tienda online de confianza para juguetes y accesorios para mascotas
+                </p>
+                <a href="#" class="btn btn-light btn-lg mt-3">
+                    <i class="bi bi-box-seam"></i> Ver Productos
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección de características -->
+    <div class="row mb-5">
+        <div class="col-md-4 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-truck display-3 text-primary mb-3"></i>
+                    <h5 class="card-title">Envío Rápido</h5>
+                    <p class="card-text text-muted">
+                        Recibe tus pedidos en 24-48 horas
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-shield-check display-3 text-success mb-3"></i>
+                    <h5 class="card-title">Compra Segura</h5>
+                    <p class="card-text text-muted">
+                        Pago 100% seguro y protegido
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-heart display-3 text-danger mb-3"></i>
+                    <h5 class="card-title">Calidad Garantizada</h5>
+                    <p class="card-text text-muted">
+                        Productos de las mejores marcas
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección de productos destacados (placeholder) -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <h2 class="text-center mb-4">
+                <i class="bi bi-star-fill text-warning"></i> Productos Destacados
+            </h2>
+        </div>
+        <div class="col-12 text-center text-muted">
+            <p>Próximamente verás aquí nuestros productos más populares</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
