@@ -26,8 +26,18 @@ admin.site.site_title = "PeM Admin"
 admin.site.index_title = "Panel de Administración - Juguetes para Mascotas"
 
 urlpatterns = [
+    # Admin
     path('admin/', admin.site.urls),
+
+    # Página principal
     path('', views.home, name='home'),
+
+    # API REST - Carrito
+    path('api/carrito/', views.ObtenerCarritoView.as_view(), name='api_carrito_obtener'),
+    path('api/carrito/agregar/', views.AgregarProductoView.as_view(), name='api_carrito_agregar'),
+    path('api/carrito/modificar/', views.ModificarCantidadView.as_view(), name='api_carrito_modificar'),
+    path('api/carrito/eliminar/<int:producto_id>/', views.EliminarProductoView.as_view(), name='api_carrito_eliminar'),
+    path('api/carrito/vaciar/', views.VaciarCarritoView.as_view(), name='api_carrito_vaciar'),
 ]
 
 # Servir archivos media en desarrollo
