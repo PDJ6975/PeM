@@ -45,6 +45,13 @@ urlpatterns = [
     path('api/admin/pedidos/<int:pedido_id>/cambiar-estado/', views.admin_pedido_cambiar_estado, name='admin_pedido_cambiar_estado'),
     path('api/admin/pedidos/<int:pedido_id>/cancelar/', views.admin_pedido_cancelar, name='admin_pedido_cancelar'),
     path('api/admin/pedidos/estadisticas/', views.admin_pedidos_estadisticas, name='admin_pedidos_estadisticas'),
+
+     # API REST - Usuarios y Autenticación
+    path('api/auth/register/', views.RegisterView.as_view(), name='api_auth_register'),
+    path('api/auth/login/', views.LoginView.as_view(), name='api_auth_login'),
+
+    # API REST - Consulta de Pedido sin Cuenta
+    path('seguimiento/<uuid:tracking_token>/', views.SeguimientoPedidoView.as_view(), name='seguimiento_pedido'),
 ]
 
 # Servir archivos media en desarrollo

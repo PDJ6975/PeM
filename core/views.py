@@ -431,3 +431,153 @@ def admin_pedidos_estadisticas(request):
     }
     
     return render(request, 'core/admin/pedidos_estadisticas.html', context)
+
+
+# ============================================
+# API REST para Usuarios y Autenticación
+# ============================================
+
+@method_decorator(csrf_exempt, name='dispatch')
+class RegisterView(View):
+    """
+    POST /api/auth/register/
+    Registra un nuevo cliente.
+
+    Body (JSON):
+        {
+            "email": "test@example.com",
+            "password": "securepassword",
+            "nombre": "Pablo",
+            "apellidos": "Olivencia Moreno"
+        }
+
+    Respuesta (201):
+        {
+            "success": true,
+            "mensaje": "Usuario registrado correctamente"
+        }
+    """
+
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            email = data.get("email")
+            password = data.get("password")
+            nombre = data.get("nombre")
+            apellidos = data.get("apellidos")
+
+            if not email or not password:
+                return JsonResponse({"error": "Email y contraseña son obligatorios"}, status=400)
+
+            from core.services.cliente import register
+            cliente = register(email=email, password=password, nombre=nombre, apellidos=apellidos)
+            return JsonResponse({
+                "success": True,
+                "mensaje": "Usuario registrado correctamente",
+                "cliente": {
+                    "email": cliente.email,
+                    "nombre": cliente.nombre,
+                    "apellidos": cliente.apellidos
+                }
+            }, status=201)
+
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": "Error interno del servidor", "detalle": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class LoginView(View):
+    """
+    POST /api/auth/login/
+    Inicia sesión con email y contraseña.
+
+    Body (JSON):
+        {
+            "email": "test@example.com",
+            "password": "securepassword"
+        }
+
+    Respuesta (200):
+        {
+            "success": true,
+            "mensaje": "Inicio de sesión exitoso",
+            "usuario": {...}
+        }
+    """
+
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            email = data.get("email")
+            password = data.get("password")
+
+            if not email or not password:
+                return JsonResponse({"error": "Email y contraseña son obligatorios"}, status=400)
+
+            from core.services.cliente import login
+            cliente = login(email=email, password=password)
+
+            if not cliente:
+                return JsonResponse({"error": "Credenciales inválidas"}, status=401)
+
+            return JsonResponse({
+                "success": True,
+                "mensaje": "Inicio de sesión exitoso",
+                "usuario": {
+                    "email": cliente.email,
+                    "nombre": cliente.nombre,
+                    "apellidos": cliente.apellidos
+                }
+            })
+
+        except Exception as e:
+            return JsonResponse({"error": "Error interno del servidor", "detalle": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ConsultaPedidoSinCuentaView(View):
+    """
+    POST /api/pedidos/consulta/
+    Consulta el estado de un pedido sin necesidad de tener cuenta.
+
+    Body (JSON):
+        {
+            "email": "test@example.com",
+            "codigo_pedido": "PED12345"
+        }
+
+    Respuesta (200):
+        {
+            "success": true,
+            "pedido": {...}
+        }
+    """
+
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            email = data.get("email")
+            codigo = data.get("codigo_pedido")
+
+            if not email or not codigo:
+                return JsonResponse({"error": "Email y código del pedido son obligatorios"}, status=400)
+
+            from core.models.pedido import Pedido
+            pedido = Pedido.objects.filter(email=email, codigo=codigo).first()
+
+            if not pedido:
+                return JsonResponse({"error": "Pedido no encontrado"}, status=404)
+
+            return JsonResponse({
+                "success": True,
+                "pedido": {
+                    "codigo": pedido.codigo,
+                    "estado": pedido.estado,
+                    "fecha": pedido.fecha_creacion,
+                }
+            })
+
+        except Exception as e:
+            return JsonResponse({"error": "Error interno del servidor", "detalle": str(e)}, status=500)

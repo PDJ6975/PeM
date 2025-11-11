@@ -3,6 +3,8 @@ from django.core.validators import MinValueValidator, RegexValidator
 from django.utils import timezone
 from decimal import Decimal
 import uuid
+from django.core.mail import send_mail
+from django.conf import settings
 
 
 class Pedido(models.Model):
@@ -113,6 +115,13 @@ class Pedido(models.Model):
         help_text='Teléfono de contacto para el envío'
     )
 
+    tracking_token = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        help_text="Token único para seguimiento de pedido sin cuenta"
+    )
+
     # Auditoría
     fecha_actualizacion = models.DateTimeField(
         auto_now=True,
@@ -218,3 +227,29 @@ class Pedido(models.Model):
             self.save()
             return True
         return False
+    
+    def get_tracking_url(self):
+        """
+        Devuelve la URL completa para el seguimiento del pedido.
+        """
+        base_url = getattr(settings, "SITE_URL", "http://localhost:8000")
+        return f"{base_url}/seguimiento/{self.tracking_token}/"
+
+    def enviar_correo_tracking(self):
+        """
+        Envía un correo con la información del pedido y el enlace de seguimiento.
+        """
+        asunto = f"Confirmación de tu pedido {self.numero_pedido}"
+        mensaje = (
+            f"¡Gracias por tu compra!\n\n"
+            f"Tu pedido ha sido recibido correctamente.\n"
+            f"Puedes consultar su estado en cualquier momento en el siguiente enlace:\n\n"
+            f"{self.get_tracking_url()}\n\n"
+            f"Resumen:\n"
+            f"Estado: {self.estado}\n"
+            f"Total: {self.total} €\n\n"
+            f"PeM - Juguetes para Mascotas"
+        )
+        remitente = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pem.com")
+        destinatario = [self.cliente.email]
+        send_mail(asunto, mensaje, remitente, destinatario)
