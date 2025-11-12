@@ -60,7 +60,7 @@ main.main-content {
    ====================== */
 .carrito-widget-top {
     position: fixed;
-    top: 80px;
+    top: 100px;
     right: 20px;
     z-index: 1050;
     animation: slideInRight 0.5s ease-out;
@@ -201,6 +201,40 @@ main.main-content {
 
 .offcanvas-footer {
     background-color: var(--light-color);
+}
+
+/* Botón de procesar pedido con efecto similar al widget */
+.offcanvas-footer .btn-primary {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    border: none;
+    box-shadow: 0 4px 16px rgba(13, 110, 253, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.offcanvas-footer .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.offcanvas-footer .btn-primary:hover::before {
+    left: 100%;
+}
+
+.offcanvas-footer .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(13, 110, 253, 0.4);
+}
+
+.offcanvas-footer .btn-primary:active {
+    transform: translateY(0);
 }
 
 /* ======================
