@@ -26,27 +26,21 @@ const ENDPOINTS = {
  * Realiza una petición HTTP a la API
  */
 async function fetchAPI(url, options = {}) {
-    try {
-        const response = await fetch(url, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers,
-            },
-            ...options,
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.mensaje || 'Error en la petición');
-        }
-
-        return data;
-    } catch (error) {
-        console.error('Error en fetchAPI:', error);
-        throw error;
-    }
+  try {
+    const { headers, ...rest } = options;
+    const response = await fetch(url, {
+      headers: { 'Content-Type': 'application/json', ...(headers || {}) },
+      ...rest,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.mensaje || 'Error en la petición');
+    return data;
+  } catch (error) {
+    console.error('Error en fetchAPI:', error);
+    throw error;
+  }
 }
+
 
 
 // ============================================
