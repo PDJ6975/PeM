@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.views import View
+from django.views.generic import TemplateView
+from django.core.paginator import Paginator
 from django.views.decorators.http import require_http_methods
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -9,6 +11,10 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth import login as django_login
+
+from core.services.catalogo import buscar_productos, obtener_productos_destacados
+from core.models import Producto
+from .models import Categoria, Marca
 import json
 
 from core.services import carrito as carrito_service
@@ -563,3 +569,76 @@ class SeguimientoPedidoView(View):
     """
     def get(self, request, tracking_token):
         return HttpResponse(f"Seguimiento temporal del pedido: {tracking_token}")
+
+class CategoriasView(TemplateView):
+    template_name = "core/categorias.html"
+
+    def get(self, request, *args, **kwargs):
+        categorias = Categoria.objects.order_by("nombre")
+        destacados = {c.id: c.productos.filter(esta_disponible=True)[:8] for c in categorias}
+        destacados_list = [(c, destacados[c.id]) for c in categorias]
+        return render(request, self.template_name, {"categorias": categorias, "destacados_list": destacados_list})
+
+
+
+class ProductosListView(TemplateView):
+    template_name = "core/catalogo.html"
+
+    def get(self, request, *args, **kwargs):
+        q = request.GET.get("q") or ""
+        marca_id = request.GET.get("marca") or None
+        categoria_id = request.GET.get("categoria") or None
+        genero = request.GET.get("genero") or None
+        ordenar = request.GET.get("ordenar") or "nombre"  # nombre | precio | -precio
+
+        qs = buscar_productos(q, marca_id, categoria_id, genero).order_by(ordenar)
+        paginator = Paginator(qs, 12)  # 12 por página
+        page_obj = paginator.get_page(request.GET.get("page"))
+
+        destacados = obtener_productos_destacados(limit=4)
+        contexto = {
+            "page_obj": page_obj,
+            "total": paginator.count,
+            "marcas": Marca.objects.order_by("nombre"),
+            "categorias": Categoria.objects.order_by("nombre"),
+            "filtros": {"q": q, "marca": marca_id, "categoria": categoria_id, "genero": genero, "ordenar": ordenar},
+            "destacados": destacados,
+        }
+        return render(request, self.template_name, contexto)
+
+
+
+def api_categorias(request):
+    data = list(Categoria.objects.order_by("nombre").values("id", "nombre"))
+    return JsonResponse({"categorias": data}, status=200)
+
+
+def api_productos(request):
+    q = request.GET.get("q") or ""
+    marca_id = request.GET.get("marca") or None
+    categoria_id = request.GET.get("categoria") or None
+    genero = request.GET.get("genero") or None
+    ordenar = request.GET.get("ordenar") or "nombre"
+
+    qs = buscar_productos(q, marca_id, categoria_id, genero).order_by(ordenar)
+    paginator = Paginator(qs, int(request.GET.get("page_size") or 12))
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    items = [{
+        "id": p.id,
+        "nombre": p.nombre,
+        "precio": str(p.precio_actual()),  # respeta lógica del modelo
+        "tiene_oferta": p.tiene_oferta(),
+        "marca": p.marca.nombre,
+        "categoria": p.categoria.nombre,
+        "genero": p.genero,
+        "imagen": p.imagen.url if p.imagen else None,
+        "stock": p.stock,
+    } for p in page_obj.object_list]
+
+    return JsonResponse({
+        "count": paginator.count,
+        "num_pages": paginator.num_pages,
+        "page": page_obj.number,
+        "results": items
+    }, status=200)
