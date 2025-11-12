@@ -301,3 +301,80 @@ def vaciar_carrito(carrito_id):
         }
     except Carrito.DoesNotExist:
         raise CarritoError(f"Carrito con ID {carrito_id} no encontrado")
+
+
+@transaction.atomic
+def migrar_carrito(carrito_anonimo_id, cliente):
+    """
+    Migra los productos de un carrito anónimo a un carrito de usuario registrado.
+    Si el usuario ya tiene un carrito, combina ambos carritos.
+
+    Args:
+        carrito_anonimo_id: ID del carrito anónimo
+        cliente: Instancia del modelo Cliente
+
+    Returns:
+        dict: Información de la migración con estructura:
+            {
+                'carrito_id': int,
+                'items_migrados': int,
+                'items_combinados': int,
+                'mensaje': str
+            }
+
+    Raises:
+        CarritoError: Si el carrito anónimo no existe o ya tiene cliente
+    """
+    try:
+        # Obtener carrito anónimo
+        carrito_anonimo = Carrito.objects.prefetch_related('items__producto').get(
+            id=carrito_anonimo_id
+        )
+    except Carrito.DoesNotExist:
+        raise CarritoError(f"Carrito con ID {carrito_anonimo_id} no encontrado")
+
+    # Validar que sea carrito anónimo
+    if carrito_anonimo.cliente is not None:
+        raise CarritoError("El carrito ya tiene un cliente asociado")
+
+    # Obtener o crear carrito del cliente
+    carrito_cliente = obtener_o_crear_carrito(cliente=cliente)
+
+    items_migrados = 0
+    items_combinados = 0
+
+    # Migrar cada item del carrito anónimo
+    for item_anonimo in carrito_anonimo.items.all():
+        # Verificar si el producto ya existe en el carrito del cliente
+        item_cliente = ItemCarrito.objects.filter(
+            carrito=carrito_cliente,
+            producto=item_anonimo.producto
+        ).first()
+
+        if item_cliente:
+            # Producto ya existe, combinar cantidades
+            nueva_cantidad = item_cliente.cantidad + item_anonimo.cantidad
+
+            # Validar stock disponible
+            if nueva_cantidad > item_anonimo.producto.stock:
+                # Ajustar a stock máximo disponible
+                nueva_cantidad = item_anonimo.producto.stock
+
+            item_cliente.cantidad = nueva_cantidad
+            item_cliente.save()
+            items_combinados += 1
+        else:
+            # Producto no existe, migrar el item
+            item_anonimo.carrito = carrito_cliente
+            item_anonimo.save()
+            items_migrados += 1
+
+    # Eliminar el carrito anónimo
+    carrito_anonimo.delete()
+
+    return {
+        'carrito_id': carrito_cliente.id,
+        'items_migrados': items_migrados,
+        'items_combinados': items_combinados,
+        'mensaje': 'Carrito migrado exitosamente'
+    }
