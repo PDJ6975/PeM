@@ -150,6 +150,12 @@ function actualizarTotal(subtotal) {
     if (totalElement) {
         totalElement.textContent = formatearPrecio(subtotal);
     }
+
+    // Actualizar también el total en el widget superior
+    const totalWidgetElement = document.getElementById('carritoTotalWidget');
+    if (totalWidgetElement) {
+        totalWidgetElement.textContent = formatearPrecio(subtotal);
+    }
 }
 
 /**
@@ -399,9 +405,32 @@ async function inicializarCarrito() {
         const resultado = await obtenerCarrito();
         renderizarCarrito(resultado);
 
+        // Configurar eventos del offcanvas
+        configurarEventosOffcanvas();
+
         console.log('Carrito inicializado correctamente');
     } catch (error) {
         console.error('Error al inicializar carrito:', error);
+    }
+}
+
+/**
+ * Configura los eventos del offcanvas para ocultar/mostrar el widget
+ */
+function configurarEventosOffcanvas() {
+    const offcanvasElement = document.getElementById('carritoOffcanvas');
+    const widgetElement = document.querySelector('.carrito-widget-top');
+
+    if (offcanvasElement && widgetElement) {
+        // Cuando empieza a abrirse el offcanvas, ocultar el widget inmediatamente
+        offcanvasElement.addEventListener('show.bs.offcanvas', () => {
+            widgetElement.classList.add('hidden');
+        });
+
+        // Cuando se cierra el offcanvas, mostrar el widget
+        offcanvasElement.addEventListener('hidden.bs.offcanvas', () => {
+            widgetElement.classList.remove('hidden');
+        });
     }
 }
 

@@ -1,11 +1,17 @@
 {% load static %}
 
-<!-- Widget del carrito (siempre visible) -->
-<div class="carrito-widget" id="carritoWidget">
-    <button class="btn btn-primary rounded-circle carrito-btn" type="button" data-bs-toggle="offcanvas"
+<!-- Widget del carrito -->
+<div class="carrito-widget-top" id="carritoWidget">
+    <button class="carrito-btn-modern" type="button" data-bs-toggle="offcanvas"
             data-bs-target="#carritoOffcanvas" aria-controls="carritoOffcanvas">
-        <i class="bi bi-cart3"></i>
-        <span class="badge bg-danger carrito-badge" id="carritoBadge">0</span>
+        <div class="carrito-icon-wrapper">
+            <i class="bi bi-cart3"></i>
+            <span class="carrito-badge-modern" id="carritoBadge">0</span>
+        </div>
+        <div class="carrito-text">
+            <span class="carrito-label">Mi Carrito</span>
+            <span class="carrito-total" id="carritoTotalWidget">0,00 €</span>
+        </div>
     </button>
 </div>
 

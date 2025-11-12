@@ -56,36 +56,140 @@ main.main-content {
 }
 
 /* ======================
-   Widget del Carrito
+   Widget del Carrito (Superior)
    ====================== */
-.carrito-widget {
+.carrito-widget-top {
     position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    z-index: 1040;
+    top: 80px;
+    right: 20px;
+    z-index: 1050;
+    animation: slideInRight 0.5s ease-out;
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
 }
 
-.carrito-btn {
-    width: 60px;
-    height: 60px;
-    font-size: 1.5rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+/* Ocultar widget cuando el offcanvas está abierto */
+.carrito-widget-top.hidden {
+    opacity: 0;
+    transform: translateX(120px);
+    pointer-events: none;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.carrito-btn-modern {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-weight: 500;
+    box-shadow: 0 4px 16px rgba(13, 110, 253, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
     position: relative;
+    overflow: hidden;
 }
 
-.carrito-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-}
-
-.carrito-badge {
+.carrito-btn-modern::before {
+    content: '';
     position: absolute;
-    top: -5px;
-    right: -5px;
-    padding: 0.35em 0.5em;
-    font-size: 0.75rem;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.carrito-btn-modern:hover::before {
+    left: 100%;
+}
+
+.carrito-btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(13, 110, 253, 0.4);
+}
+
+.carrito-btn-modern:active {
+    transform: translateY(0);
+}
+
+.carrito-icon-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+}
+
+.carrito-icon-wrapper i {
+    font-size: 1.5rem;
+    color: white;
+}
+
+.carrito-badge-modern {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: bold;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border: 2px solid white;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.4);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.carrito-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+}
+
+.carrito-label {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.carrito-total {
+    font-size: 1rem;
+    font-weight: bold;
+    letter-spacing: -0.5px;
 }
 
 /* ======================
@@ -126,19 +230,42 @@ footer a:hover {
    Responsive
    ====================== */
 @media (max-width: 768px) {
-    .carrito-widget {
-        bottom: 1rem;
-        right: 1rem;
+    .carrito-widget-top {
+        top: 10px;
+        right: 10px;
     }
 
-    .carrito-btn {
-        width: 50px;
-        height: 50px;
+    .carrito-btn-modern {
+        padding: 10px 14px;
+        gap: 8px;
+    }
+
+    .carrito-icon-wrapper {
+        width: 36px;
+        height: 36px;
+    }
+
+    .carrito-icon-wrapper i {
         font-size: 1.25rem;
+    }
+
+    .carrito-text {
+        display: none;
     }
 
     .offcanvas {
         width: 100% !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .carrito-btn-modern {
+        padding: 8px 12px;
+    }
+
+    .carrito-icon-wrapper {
+        width: 32px;
+        height: 32px;
     }
 }
 
