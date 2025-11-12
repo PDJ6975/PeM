@@ -11,7 +11,8 @@ from core.services.carrito import (
     agregar_producto,
     eliminar_producto,
     obtener_o_crear_carrito,
-    obtener_carrito_detallado
+    obtener_carrito_detallado,
+    CarritoError
 )
 
 
@@ -261,3 +262,153 @@ class EliminarProductoTestCase(TestCase):
             resultado_antes['subtotal'] - resultado_despues['subtotal'],
             subtotal_producto2_eliminado
         )
+
+    # --- CASOS LÍMITE ---
+
+    def test_cp41_eliminar_producto_inexistente_operacion_idempotente(self):
+        """
+        CP-41: Eliminar producto inexistente del carrito (no debe fallar, operación idempotente)
+        """
+        carrito = obtener_o_crear_carrito(cliente=self.cliente)
+
+        # Agregar solo producto1
+        agregar_producto(
+            carrito_id=carrito.id,
+            producto_id=self.producto1.id,
+            cantidad=2
+        )
+
+        # Verificar estado inicial
+        self.assertEqual(ItemCarrito.objects.filter(carrito=carrito).count(), 1)
+
+        # Intentar eliminar producto2 que NO está en el carrito
+        # Debe lanzar CarritoError según la implementación actual
+        with self.assertRaises(CarritoError) as context:
+            eliminar_producto(
+                carrito_id=carrito.id,
+                producto_id=self.producto2.id
+            )
+
+        # Verificar mensaje de error
+        self.assertIn('no se encuentra en el carrito', str(context.exception).lower())
+
+        # Verificar que el carrito no cambió
+        self.assertEqual(ItemCarrito.objects.filter(carrito=carrito).count(), 1)
+        self.assertTrue(ItemCarrito.objects.filter(
+            carrito=carrito,
+            producto=self.producto1
+        ).exists())
+
+    def test_cp42_eliminar_producto_de_carrito_vacio(self):
+        """
+        CP-42: Eliminar producto de carrito vacío (no debe fallar)
+        """
+        carrito = obtener_o_crear_carrito(cliente=self.cliente)
+
+        # Verificar que el carrito está vacío
+        self.assertTrue(carrito.esta_vacio())
+        self.assertEqual(ItemCarrito.objects.filter(carrito=carrito).count(), 0)
+
+        # Intentar eliminar producto de carrito vacío
+        # Debe lanzar CarritoError según la implementación actual
+        with self.assertRaises(CarritoError) as context:
+            eliminar_producto(
+                carrito_id=carrito.id,
+                producto_id=self.producto1.id
+            )
+
+        # Verificar mensaje de error
+        self.assertIn('no se encuentra en el carrito', str(context.exception).lower())
+
+        # Verificar que el carrito sigue vacío
+        self.assertTrue(carrito.esta_vacio())
+        self.assertEqual(ItemCarrito.objects.filter(carrito=carrito).count(), 0)
+
+    def test_cp43_eliminar_producto_carrito_inexistente(self):
+        """
+        CP-43: Eliminar producto de carrito inexistente (debe fallar)
+        """
+        # Usar ID de carrito que no existe
+        carrito_id_inexistente = 99999
+
+        # Verificar que el carrito no existe
+        self.assertFalse(Carrito.objects.filter(id=carrito_id_inexistente).exists())
+
+        # Intentar eliminar producto de carrito inexistente
+        with self.assertRaises(CarritoError) as context:
+            eliminar_producto(
+                carrito_id=carrito_id_inexistente,
+                producto_id=self.producto1.id
+            )
+
+        # Verificar mensaje de error
+        self.assertIn('no se encuentra en el carrito', str(context.exception).lower())
+
+    def test_cp44_eliminar_producto_inexistente_del_sistema(self):
+        """
+        CP-44: Eliminar producto que no existe en el sistema
+        """
+        carrito = obtener_o_crear_carrito(cliente=self.cliente)
+
+        # Agregar un producto al carrito
+        agregar_producto(
+            carrito_id=carrito.id,
+            producto_id=self.producto1.id,
+            cantidad=3
+        )
+
+        # Usar ID de producto que no existe en el sistema
+        producto_id_inexistente = 99999
+
+        # Verificar que el producto no existe
+        self.assertFalse(Producto.objects.filter(id=producto_id_inexistente).exists())
+
+        # Intentar eliminar producto inexistente
+        with self.assertRaises(CarritoError) as context:
+            eliminar_producto(
+                carrito_id=carrito.id,
+                producto_id=producto_id_inexistente
+            )
+
+        # Verificar mensaje de error
+        self.assertIn('no se encuentra en el carrito', str(context.exception).lower())
+
+        # Verificar que el carrito no cambió
+        self.assertEqual(ItemCarrito.objects.filter(carrito=carrito).count(), 1)
+        item = ItemCarrito.objects.get(carrito=carrito, producto=self.producto1)
+        self.assertEqual(item.cantidad, 3)
+
+    def test_eliminar_mismo_producto_dos_veces(self):
+        """
+        Verificar comportamiento al eliminar el mismo producto dos veces
+        """
+        carrito = obtener_o_crear_carrito(cliente=self.cliente)
+
+        # Agregar producto
+        agregar_producto(
+            carrito_id=carrito.id,
+            producto_id=self.producto1.id,
+            cantidad=2
+        )
+
+        # Primera eliminación (debe funcionar)
+        resultado1 = eliminar_producto(
+            carrito_id=carrito.id,
+            producto_id=self.producto1.id
+        )
+
+        self.assertEqual(resultado1['producto_id'], self.producto1.id)
+        self.assertFalse(ItemCarrito.objects.filter(
+            carrito=carrito,
+            producto=self.producto1
+        ).exists())
+
+        # Segunda eliminación (debe fallar)
+        with self.assertRaises(CarritoError) as context:
+            eliminar_producto(
+                carrito_id=carrito.id,
+                producto_id=self.producto1.id
+            )
+
+        # Verificar mensaje de error
+        self.assertIn('no se encuentra en el carrito', str(context.exception).lower())

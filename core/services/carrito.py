@@ -169,6 +169,12 @@ def modificar_cantidad(carrito_id, producto_id, nueva_cantidad):
             f"El producto no se encuentra en el carrito"
         )
 
+    # Validar disponibilidad del producto
+    if not item.producto.esta_disponible or item.producto.esta_agotado():
+        raise ProductoNoDisponibleError(
+            f"El producto '{item.producto.nombre}' no está disponible"
+        )
+
     # Validar stock
     if nueva_cantidad > item.producto.stock:
         raise StockInsuficienteError(

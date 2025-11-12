@@ -11,7 +11,8 @@ from core.services.carrito import (
     agregar_producto,
     migrar_carrito,
     obtener_o_crear_carrito,
-    obtener_carrito_detallado
+    obtener_carrito_detallado,
+    CarritoError
 )
 
 
@@ -229,3 +230,165 @@ class MigracionCarritoTestCase(TestCase):
 
         # Verificar total
         self.assertEqual(carrito_cliente.total_items(), 14)  # 7 + 2 + 5
+
+    # --- CASOS LÍMITE ---
+
+    def test_cp53_migrar_carrito_a_usuario_con_productos_existentes(self):
+        """
+        CP-53: Migrar carrito de sesión a usuario que ya tiene productos en su carrito (debe combinar)
+        """
+        # Crear carrito del usuario con productos
+        carrito_usuario = obtener_o_crear_carrito(cliente=self.cliente)
+        agregar_producto(carrito_id=carrito_usuario.id, producto_id=self.producto1.id, cantidad=3)
+        agregar_producto(carrito_id=carrito_usuario.id, producto_id=self.producto2.id, cantidad=1)
+
+        # Verificar estado inicial del carrito del usuario
+        self.assertEqual(carrito_usuario.total_items(), 4)  # 3 + 1
+
+        # Crear carrito anónimo con productos diferentes y uno común
+        carrito_anonimo = obtener_o_crear_carrito(cliente=None)
+        agregar_producto(carrito_id=carrito_anonimo.id, producto_id=self.producto2.id, cantidad=2)  # Producto común
+        agregar_producto(carrito_id=carrito_anonimo.id, producto_id=self.producto3.id, cantidad=4)  # Producto nuevo
+
+        # Migrar
+        resultado = migrar_carrito(
+            carrito_anonimo_id=carrito_anonimo.id,
+            cliente=self.cliente
+        )
+
+        # Verificaciones
+        self.assertEqual(resultado['items_migrados'], 1)  # producto3 es nuevo
+        self.assertEqual(resultado['items_combinados'], 1)  # producto2 se combina
+
+        # Verificar carrito final del usuario
+        carrito_usuario.refresh_from_db()
+        items_finales = obtener_carrito_detallado(carrito_usuario.id)
+
+        # Producto1: sin cambios (3 unidades)
+        item1 = ItemCarrito.objects.get(carrito=carrito_usuario, producto=self.producto1)
+        self.assertEqual(item1.cantidad, 3)
+
+        # Producto2: combinado (1 + 2 = 3 unidades)
+        item2 = ItemCarrito.objects.get(carrito=carrito_usuario, producto=self.producto2)
+        self.assertEqual(item2.cantidad, 3)
+
+        # Producto3: migrado (4 unidades)
+        item3 = ItemCarrito.objects.get(carrito=carrito_usuario, producto=self.producto3)
+        self.assertEqual(item3.cantidad, 4)
+
+        # Verificar total de items
+        self.assertEqual(carrito_usuario.total_items(), 10)  # 3 + 3 + 4
+
+        # Verificar que el carrito anónimo fue eliminado
+        self.assertFalse(Carrito.objects.filter(id=carrito_anonimo.id).exists())
+
+    def test_cp54_migrar_carrito_productos_duplicados_con_limite_stock(self):
+        """
+        CP-54: Migrar carrito con productos duplicados (mismo producto en sesión y en usuario)
+        con validación de stock
+        """
+        # Crear carrito del usuario con producto1
+        carrito_usuario = obtener_o_crear_carrito(cliente=self.cliente)
+        agregar_producto(carrito_id=carrito_usuario.id, producto_id=self.producto1.id, cantidad=6)
+
+        # Crear carrito anónimo con el mismo producto
+        carrito_anonimo = obtener_o_crear_carrito(cliente=None)
+        agregar_producto(carrito_id=carrito_anonimo.id, producto_id=self.producto1.id, cantidad=3)
+
+        # El producto1 tiene stock=10
+        self.assertEqual(self.producto1.stock, 10)
+
+        # Migrar (debe combinar: 6 + 3 = 9, dentro del stock)
+        resultado = migrar_carrito(
+            carrito_anonimo_id=carrito_anonimo.id,
+            cliente=self.cliente
+        )
+
+        # Verificaciones
+        self.assertEqual(resultado['items_migrados'], 0)
+        self.assertEqual(resultado['items_combinados'], 1)
+
+        # Verificar cantidad combinada
+        item = ItemCarrito.objects.get(carrito=carrito_usuario, producto=self.producto1)
+        self.assertEqual(item.cantidad, 9)  # 6 + 3
+
+    def test_cp54_migrar_productos_duplicados_excede_stock(self):
+        """
+        CP-54 variante: Migrar con productos duplicados que excederían el stock
+        (debe ajustar al stock máximo)
+        """
+        # Crear carrito del usuario con producto1
+        carrito_usuario = obtener_o_crear_carrito(cliente=self.cliente)
+        agregar_producto(carrito_id=carrito_usuario.id, producto_id=self.producto1.id, cantidad=7)
+
+        # Crear carrito anónimo con el mismo producto
+        carrito_anonimo = obtener_o_crear_carrito(cliente=None)
+        agregar_producto(carrito_id=carrito_anonimo.id, producto_id=self.producto1.id, cantidad=5)
+
+        # El producto1 tiene stock=10
+        # 7 + 5 = 12, excede el stock de 10
+        self.assertEqual(self.producto1.stock, 10)
+
+        # Migrar (debe ajustar a stock máximo de 10)
+        resultado = migrar_carrito(
+            carrito_anonimo_id=carrito_anonimo.id,
+            cliente=self.cliente
+        )
+
+        # Verificaciones
+        self.assertEqual(resultado['items_combinados'], 1)
+
+        # Verificar que se ajustó al stock máximo
+        item = ItemCarrito.objects.get(carrito=carrito_usuario, producto=self.producto1)
+        self.assertEqual(item.cantidad, 10)  # Ajustado al stock máximo, no 12
+
+    def test_cp55_migrar_desde_carrito_inexistente(self):
+        """
+        CP-55: Migrar desde carrito inexistente (debe fallar)
+        """
+        # Usar ID de carrito que no existe
+        carrito_id_inexistente = 99999
+
+        # Verificar que el carrito no existe
+        self.assertFalse(Carrito.objects.filter(id=carrito_id_inexistente).exists())
+
+        # Intentar migrar desde carrito inexistente
+        with self.assertRaises(CarritoError) as context:
+            migrar_carrito(
+                carrito_anonimo_id=carrito_id_inexistente,
+                cliente=self.cliente
+            )
+
+        # Verificar mensaje de error
+        self.assertIn('no encontrado', str(context.exception).lower())
+
+    def test_cp56_migrar_a_cliente_con_carrito_no_anonimo(self):
+        """
+        CP-56: Intentar migrar un carrito que ya tiene cliente asociado (debe fallar)
+        """
+        # Crear otro cliente
+        otro_cliente = Cliente.objects.create_user(
+            username="otro_user",
+            email="otro@example.com",
+            password="password123",
+            nombre="Otro",
+            apellidos="Usuario"
+        )
+
+        # Crear carrito asociado a otro_cliente
+        carrito_otro = obtener_o_crear_carrito(cliente=otro_cliente)
+        agregar_producto(carrito_id=carrito_otro.id, producto_id=self.producto1.id, cantidad=2)
+
+        # Intentar migrar ese carrito a self.cliente (debe fallar porque ya tiene cliente)
+        with self.assertRaises(CarritoError) as context:
+            migrar_carrito(
+                carrito_anonimo_id=carrito_otro.id,
+                cliente=self.cliente
+            )
+
+        # Verificar mensaje de error
+        self.assertIn('ya tiene un cliente', str(context.exception).lower())
+
+        # Verificar que el carrito original no cambió
+        carrito_otro.refresh_from_db()
+        self.assertEqual(carrito_otro.cliente, otro_cliente)

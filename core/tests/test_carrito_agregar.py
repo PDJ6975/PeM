@@ -244,3 +244,229 @@ class AgregarProductoTestCase(TestCase):
 
         item2 = ItemCarrito.objects.get(carrito=carrito, producto=self.producto2)
         self.assertEqual(item2.cantidad, 3)
+
+    # --- CASOS LÍMITE ---
+
+    def test_cp06_agregar_producto_cantidad_cero(self):
+        """
+        CP-06: Agregar producto con cantidad = 0 (debe rechazarse)
+        """
+        carrito = obtener_o_crear_carrito(cliente=self.cliente)
+
+        # Intentar agregar producto con cantidad 0
+        with self.assertRaises(ValidationError) as context:
+            agregar_producto(
+                carrito_id=carrito.id,
+                producto_id=self.producto1.id,
+                cantidad=0
+            )
+
+        # Verificar mensaje de error
+        self.assertIn('cantidad debe ser al menos 1', str(context.exception).lower())
+
+        # Verificar que el carrito sigue vacío
+        self.assertTrue(carrito.esta_vacio())
+        self.assertEqual(ItemCarrito.objects.filter(carrito=carrito).count(), 0)
+
+    def test_cp07_agregar_producto_cantidad_negativa(self):
+        """
+        CP-07: Agregar producto con cantidad negativa (debe rechazarse)
+        """
+        carrito = obtener_o_crear_carrito(cliente=self.cliente)
+
+        # Intentar agregar producto con cantidad negativa
+        with self.assertRaises(ValidationError) as context:
+            agregar_producto(
+                carrito_id=carrito.id,
+                producto_id=self.producto1.id,
+                cantidad=-5
+            )
+
+        # Verificar mensaje de error
+        self.assertIn('cantidad debe ser al menos 1', str(context.exception).lower())
+
+        # Verificar que el carrito sigue vacío
+        self.assertTrue(carrito.esta_vacio())
+        self.assertEqual(ItemCarrito.objects.filter(carrito=carrito).count(), 0)
+
+    def test_cp08_agregar_producto_cantidad_mayor_a_stock(self):
+        """
+        CP-08: Agregar producto con cantidad mayor al stock disponible (debe rechazarse)
+        """
+        carrito = obtener_o_crear_carrito(cliente=self.cliente)
+
+        # El producto1 tiene stock=10
+        self.assertEqual(self.producto1.stock, 10)
+
+        # Intentar agregar más del stock disponible
+        with self.assertRaises(StockInsuficienteError) as context:
+            agregar_producto(
+                carrito_id=carrito.id,
+                producto_id=self.producto1.id,
+                cantidad=15
+            )
+
+        # Verificar mensaje de error
+        self.assertIn('stock insuficiente', str(context.exception).lower())
+        self.assertIn('disponible: 10', str(context.exception).lower())
+        self.assertIn('solicitado: 15', str(context.exception).lower())
+
+        # Verificar que el carrito sigue vacío
+        self.assertTrue(carrito.esta_vacio())
+
+    def test_cp09_agregar_producto_agotado(self):
+        """
+        CP-09: Agregar producto agotado (stock = 0) (debe rechazarse)
+        """
+        # Crear producto agotado
+        producto_agotado = Producto.objects.create(
+            nombre="Juguete Agotado",
+            descripcion="Sin stock",
+            precio=Decimal("20.00"),
+            stock=0,
+            esta_disponible=True,
+            marca=self.marca,
+            categoria=self.categoria
+        )
+
+        carrito = obtener_o_crear_carrito(cliente=self.cliente)
+
+        # Intentar agregar producto agotado
+        with self.assertRaises(ProductoNoDisponibleError) as context:
+            agregar_producto(
+                carrito_id=carrito.id,
+                producto_id=producto_agotado.id,
+                cantidad=1
+            )
+
+        # Verificar mensaje de error
+        self.assertIn('no está disponible', str(context.exception).lower())
+
+        # Verificar que el carrito sigue vacío
+        self.assertTrue(carrito.esta_vacio())
+
+    def test_cp10_agregar_producto_inexistente(self):
+        """
+        CP-10: Agregar producto inexistente (producto_id no válido)
+        """
+        carrito = obtener_o_crear_carrito(cliente=self.cliente)
+
+        # Usar ID de producto que no existe
+        producto_id_inexistente = 99999
+
+        # Verificar que el producto no existe
+        self.assertFalse(Producto.objects.filter(id=producto_id_inexistente).exists())
+
+        # Intentar agregar producto inexistente
+        with self.assertRaises(CarritoError) as context:
+            agregar_producto(
+                carrito_id=carrito.id,
+                producto_id=producto_id_inexistente,
+                cantidad=1
+            )
+
+        # Verificar mensaje de error
+        self.assertIn('producto', str(context.exception).lower())
+        self.assertIn('no encontrado', str(context.exception).lower())
+
+        # Verificar que el carrito sigue vacío
+        self.assertTrue(carrito.esta_vacio())
+
+    def test_cp11_agregar_producto_carrito_inexistente(self):
+        """
+        CP-11: Agregar producto a carrito inexistente (debe fallar)
+        """
+        # Usar ID de carrito que no existe
+        carrito_id_inexistente = 99999
+
+        # Verificar que el carrito no existe
+        self.assertFalse(Carrito.objects.filter(id=carrito_id_inexistente).exists())
+
+        # Intentar agregar producto a carrito inexistente
+        with self.assertRaises(CarritoError) as context:
+            agregar_producto(
+                carrito_id=carrito_id_inexistente,
+                producto_id=self.producto1.id,
+                cantidad=1
+            )
+
+        # Verificar mensaje de error
+        self.assertIn('carrito', str(context.exception).lower())
+        self.assertIn('no encontrado', str(context.exception).lower())
+
+    # --- CASOS DE VALIDACIÓN DE STOCK ---
+
+    def test_cp13_agregar_producto_stock_justo_suficiente(self):
+        """
+        CP-13: Agregar producto que tiene stock justo suficiente (cantidad = stock)
+        """
+        carrito = obtener_o_crear_carrito(cliente=self.cliente)
+
+        # El producto1 tiene stock=10
+        self.assertEqual(self.producto1.stock, 10)
+
+        # Agregar exactamente el stock disponible
+        resultado = agregar_producto(
+            carrito_id=carrito.id,
+            producto_id=self.producto1.id,
+            cantidad=10
+        )
+
+        # Verificaciones
+        self.assertEqual(resultado['cantidad'], 10)
+        self.assertEqual(resultado['subtotal'], Decimal("15.99") * 10)
+
+        # Verificar en el carrito
+        carrito.refresh_from_db()
+        self.assertEqual(carrito.total_items(), 10)
+
+        # Verificar que el producto está en el carrito
+        item = ItemCarrito.objects.get(carrito=carrito, producto=self.producto1)
+        self.assertEqual(item.cantidad, 10)
+
+    def test_cp14_agregar_mas_unidades_agota_stock(self):
+        """
+        CP-14: Intentar agregar más unidades cuando ya hay items en el carrito que agotan el stock
+        """
+        carrito = obtener_o_crear_carrito(cliente=self.cliente)
+
+        # El producto1 tiene stock=10
+        self.assertEqual(self.producto1.stock, 10)
+
+        # Agregar 7 unidades primero
+        agregar_producto(
+            carrito_id=carrito.id,
+            producto_id=self.producto1.id,
+            cantidad=7
+        )
+
+        # Verificar que hay 7 unidades en el carrito
+        item = ItemCarrito.objects.get(carrito=carrito, producto=self.producto1)
+        self.assertEqual(item.cantidad, 7)
+
+        # Intentar agregar 5 más (total sería 12, excede el stock de 10)
+        with self.assertRaises(StockInsuficienteError) as context:
+            agregar_producto(
+                carrito_id=carrito.id,
+                producto_id=self.producto1.id,
+                cantidad=5
+            )
+
+        # Verificar mensaje de error
+        self.assertIn('stock insuficiente', str(context.exception).lower())
+        self.assertIn('disponible: 10', str(context.exception).lower())
+        self.assertIn('solicitado: 12', str(context.exception).lower())
+
+        # Verificar que la cantidad en el carrito no cambió
+        item.refresh_from_db()
+        self.assertEqual(item.cantidad, 7)
+
+        # Verificar que agregar 3 más sí funciona (total 10 = stock)
+        resultado = agregar_producto(
+            carrito_id=carrito.id,
+            producto_id=self.producto1.id,
+            cantidad=3
+        )
+
+        self.assertEqual(resultado['cantidad'], 10)
+        self.assertEqual(resultado['mensaje'], 'Cantidad actualizada')
