@@ -8,4 +8,7 @@ urlpatterns = [
     # Endpoints JSON:
     path('api/categorias/', views.api_categorias, name='api_categorias'),
     path('api/productos/', views.api_productos, name='api_productos'),
+
+    path('api/carrito/procesar-pago/', views.ProcesarPagoView.as_view(), name='carrito_procesar_pago'),
+
 ]

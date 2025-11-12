@@ -427,6 +427,40 @@ function configurarEventosOffcanvas() {
         });
     }
 }
+document.getElementById('btnProcesarPedido').addEventListener('click', async function() {
+    try {
+        // Mostrar carga mientras se procesa el pedido
+        mostrarCargando(true);
+
+        // Realizar la solicitud para procesar el pago y obtener la sesión de Stripe
+        const response = await fetch('/api/carrito/procesar-pago/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                direccion_envio: 'La dirección de envío del usuario', // O tomarlo del formulario
+                telefono: 'El teléfono del usuario', // O tomarlo del formulario
+                email: 'El correo del usuario', // O tomarlo del formulario
+            }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Si la respuesta es exitosa, redirigimos a Stripe
+            window.location.href = data.url;  // Redirigir al usuario a la página de pago de Stripe
+        } else {
+            // Si hubo algún error, mostrar mensaje
+            mostrarMensaje(data.mensaje, 'error');
+        }
+    } catch (error) {
+        mostrarMensaje('Hubo un problema al procesar tu pago. Intenta nuevamente.', 'error');
+    } finally {
+        mostrarCargando(false); // Ocultar indicador de carga
+    }
+});
+
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', inicializarCarrito);

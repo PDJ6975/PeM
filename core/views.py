@@ -642,3 +642,71 @@ def api_productos(request):
         "page": page_obj.number,
         "results": items
     }, status=200)
+
+import stripe
+from core.models import Pedido
+
+
+# Configurar la clave secreta de Stripe
+
+@method_decorator(csrf_exempt, name='dispatch')  # Aplica csrf_exempt solo a la vista
+class ProcesarPagoView(View):
+    def post(self, request):
+        # Obtener el carrito actual
+        carrito_id = request.session.get('carrito_id')
+        carrito_detalle = carrito_service.obtener_carrito_detallado(carrito_id)
+
+        if carrito_detalle['esta_vacio']:
+            return self.error_response("El carrito está vacío", status=400)
+        
+        direccion_envio = request.POST.get('direccion_envio', 'Dirección temporal')
+        telefono = request.POST.get('telefono', '123456789')
+
+        # Crear un pedido en el sistema con los datos del carrito
+        pedido = Pedido.objects.create(
+            cliente=request.user if request.user.is_authenticated else None,
+            subtotal=carrito_detalle['subtotal'],
+            impuestos=0,  # Aquí podrías incluir un cálculo de impuestos si es necesario
+            total=carrito_detalle['subtotal'],
+            direccion_envio=direccion_envio,
+            telefono=telefono,
+        )
+
+        # Crear la sesión de pago de Stripe
+        try:
+            session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[
+                    {
+                        'price_data': {
+                            'currency': 'eur',
+                            'product_data': {
+                                'name': item['producto']['nombre'],
+                                'images': [item['producto']['imagen']],
+                            },
+                            'unit_amount': int(item['producto']['precio_unitario'] * 100),  # En centavos
+                        },
+                        'quantity': item['cantidad'],
+                    }
+                    for item in carrito_detalle['items']
+                ],
+                mode='payment',
+                success_url=request.build_absolute_uri('/pago_exitoso/?session_id={CHECKOUT_SESSION_ID}'),
+                cancel_url=request.build_absolute_uri('/pago_cancelado/'),
+                metadata={
+                    'pedido_id': pedido.id,
+                    'cliente_email': request.user.email if request.user.is_authenticated else request.POST.get('email'),
+                    'direccion_envio': request.POST.get('direccion_envio'),
+                    'telefono': request.POST.get('telefono'),
+                },
+            )
+
+            # Guardar el ID de la sesión en el pedido
+            pedido.stripe_session_id = session.id
+            pedido.save()
+ 
+            # Redirigir al usuario a la página de pago de Stripe
+            return redirect(session.url, code=303)
+
+        except Exception as e:
+            return self.error_response(f"Error al crear la sesión de Stripe: {str(e)}", status=500)
