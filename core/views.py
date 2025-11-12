@@ -318,8 +318,12 @@ class VaciarCarritoView(CarritoBaseView):
 
 # ============================================
 # API REST para Gestión de Pedidos (Admin)
+#
+# COMENTADO POR AHORA HASTA QUE SEPAMOS QUE PANEL DE 
+# ADMINISTRACIÓN QUIERE EL CLIENTE
 # ============================================
 
+'''
 @staff_member_required
 def admin_pedidos_lista(request):
     """
@@ -442,7 +446,7 @@ def admin_pedidos_estadisticas(request):
     }
     
     return render(request, 'core/admin/pedidos_estadisticas.html', context)
-
+'''
 
 # ============================================
 # API REST para Usuarios y Autenticación
