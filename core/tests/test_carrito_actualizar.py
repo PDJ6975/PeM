@@ -55,7 +55,6 @@ class ActualizarCantidadTestCase(TestCase):
 
         # Crear cliente de prueba
         self.cliente = Cliente.objects.create_user(
-            username="test_user",
             email="test@example.com",
             password="password123",
             nombre="Test",

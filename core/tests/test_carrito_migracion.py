@@ -63,7 +63,6 @@ class MigracionCarritoTestCase(TestCase):
 
         # Crear cliente de prueba
         self.cliente = Cliente.objects.create_user(
-            username="test_user",
             email="test@example.com",
             password="password123",
             nombre="Test",
@@ -368,7 +367,6 @@ class MigracionCarritoTestCase(TestCase):
         """
         # Crear otro cliente
         otro_cliente = Cliente.objects.create_user(
-            username="otro_user",
             email="otro@example.com",
             password="password123",
             nombre="Otro",

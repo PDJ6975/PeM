@@ -51,7 +51,6 @@ class IntegridadDatosCarritoTestCase(TestCase):
 
         # Crear cliente de prueba
         self.cliente = Cliente.objects.create_user(
-            username="test_user",
             email="test@example.com",
             password="password123",
             nombre="Test",
@@ -278,7 +277,6 @@ class IntegridadDatosCarritoTestCase(TestCase):
         """
         # Crear otro cliente
         cliente2 = Cliente.objects.create_user(
-            username="user2",
             email="user2@example.com",
             password="password123",
             nombre="Usuario",
