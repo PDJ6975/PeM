@@ -53,4 +53,8 @@ coverage.xml
 *.md
 =======
 .coverage
+>>>>>>> feature/T27-pruebas-unitarias-auth
+
+=======
+.coverage
 >>>>>>> ca53efe (feat: test unitarios)
