@@ -647,8 +647,11 @@ import stripe
 from core.models import Pedido
 
 
+<<<<<<< HEAD
 # Configurar la clave secreta de Stripe
 
+=======
+>>>>>>> 8e3737f (feat(pagos): tempralmente removida la clave)
 @method_decorator(csrf_exempt, name='dispatch')  # Aplica csrf_exempt solo a la vista
 class ProcesarPagoView(View):
     def post(self, request):
