@@ -57,3 +57,18 @@ class ClienteServiceTest(TestCase):
     def test_login_missing_password(self):
         cliente = login(email="test@example.com", password="")
         self.assertIsNone(cliente)
+
+    def test_login_missing_both_email_and_password(self):
+        cliente = login(email="", password="")
+        self.assertIsNone(cliente)
+        
+    def test_register_missing_password(self):
+        with self.assertRaises(ValueError) as context:
+            register(
+                email="new@example.com",
+                password="",
+                nombre="Test",
+                apellidos="User"
+            )
+        self.assertEqual(str(context.exception), "La contraseña es obligatoria")
+
