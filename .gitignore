@@ -40,6 +40,7 @@ Thumbs.db
 *.bak
 *.zip
 
+<<<<<<< HEAD
 # Coverage reports
 htmlcov/
 .coverage
@@ -50,3 +51,6 @@ coverage.xml
 .pytest_cache/
 
 *.md
+=======
+.coverage
+>>>>>>> ca53efe (feat: test unitarios)
