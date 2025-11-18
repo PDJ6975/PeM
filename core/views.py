@@ -611,12 +611,24 @@ def create_checkout_session(request):
         logger.warning(f"[Stripe Checkout] Método no permitido: {request.method}")
         return HttpResponseBadRequest("Método no permitido")
 
-    # --- Recuperar carrito de la sesión ---
-    carrito_id = request.session.get("carrito_id")
-    logger.debug(f"[Stripe Checkout] Carrito ID en sesión: {carrito_id}")
+    # --- Recuperar carrito ---
+    carrito_id = None
+
+    if request.user.is_authenticated:
+        # Usuario autenticado: obtener carrito desde relación
+        try:
+            carrito_id = request.user.carrito.id
+            logger.debug(f"[Stripe Checkout] Carrito de usuario autenticado: {carrito_id}")
+        except AttributeError:
+            logger.warning("[Stripe Checkout] Usuario autenticado sin carrito")
+            return HttpResponseBadRequest("No tienes un carrito")
+    else:
+        # Usuario anónimo: obtener carrito de la sesión
+        carrito_id = request.session.get("carrito_id")
+        logger.debug(f"[Stripe Checkout] Carrito ID en sesión (anónimo): {carrito_id}")
 
     if not carrito_id:
-        logger.warning("[Stripe Checkout] No hay carrito en la sesión")
+        logger.warning("[Stripe Checkout] No hay carrito disponible")
         return HttpResponseBadRequest("No hay carrito en la sesión")
 
     # --- Verificar que hay items en el carrito ---
