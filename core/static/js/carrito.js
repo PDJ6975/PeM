@@ -22,9 +22,6 @@ const ENDPOINTS = {
 // Utilidades HTTP
 // ============================================
 
-/**
- * Realiza una petición HTTP a la API
- */
 async function fetchAPI(url, options = {}) {
   try {
     const { headers, ...rest } = options;
@@ -40,8 +37,6 @@ async function fetchAPI(url, options = {}) {
     throw error;
   }
 }
-
-
 
 // ============================================
 // Funciones de la API del Carrito
