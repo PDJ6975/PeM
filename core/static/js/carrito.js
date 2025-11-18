@@ -139,12 +139,6 @@ function actualizarTotal(subtotal) {
     if (totalElement) {
         totalElement.textContent = formatearPrecio(subtotal);
     }
-
-    // Actualizar también el total en el widget superior
-    const totalWidgetElement = document.getElementById('carritoTotalWidget');
-    if (totalWidgetElement) {
-        totalWidgetElement.textContent = formatearPrecio(subtotal);
-    }
 }
 
 /**
@@ -187,8 +181,8 @@ function crearItemHTML(item) {
 
     return `
         <div class="list-group-item py-3" data-producto-id="${item.producto.id}">
-            <div class="row align-items-center">
-                <div class="col-3">
+            <div class="row align-items-center g-2">
+                <div class="col-2">
                     <img src="${imagenUrl}" alt="${item.producto.nombre}"
                          class="img-fluid rounded" style="max-height: 60px; object-fit: cover;">
                 </div>
@@ -200,32 +194,34 @@ function crearItemHTML(item) {
                         ${item.producto.tiene_oferta ? '<span class="badge bg-success ms-1">Oferta</span>' : ''}
                     </div>
                 </div>
-                <div class="col-3 text-end">
-                    <div class="input-group input-group-sm mb-2">
-                        <button class="btn btn-outline-secondary btn-cantidad-menos"
-                                data-producto-id="${item.producto.id}"
-                                data-cantidad="${item.cantidad}">
-                            <i class="bi bi-dash"></i>
-                        </button>
-                        <input type="number"
-                               class="form-control text-center input-cantidad"
-                               value="${item.cantidad}"
-                               min="1"
-                               data-producto-id="${item.producto.id}"
-                               style="max-width: 50px;">
-                        <button class="btn btn-outline-secondary btn-cantidad-mas"
-                                data-producto-id="${item.producto.id}"
-                                data-cantidad="${item.cantidad}">
-                            <i class="bi bi-plus"></i>
+                <div class="col-4">
+                    <div class="d-flex flex-column align-items-end gap-2">
+                        <div class="input-group input-group-sm" style="width: fit-content;">
+                            <button class="btn btn-outline-secondary btn-cantidad-menos"
+                                    data-producto-id="${item.producto.id}"
+                                    data-cantidad="${item.cantidad}">
+                                <i class="bi bi-dash"></i>
+                            </button>
+                            <input type="number"
+                                   class="form-control text-center input-cantidad"
+                                   value="${item.cantidad}"
+                                   min="1"
+                                   data-producto-id="${item.producto.id}"
+                                   style="max-width: 50px;">
+                            <button class="btn btn-outline-secondary btn-cantidad-mas"
+                                    data-producto-id="${item.producto.id}"
+                                    data-cantidad="${item.cantidad}">
+                                <i class="bi bi-plus"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">
+                            Subtotal: ${formatearPrecio(item.subtotal)}
+                        </small>
+                        <button class="btn btn-sm btn-outline-danger btn-eliminar"
+                                data-producto-id="${item.producto.id}">
+                            <i class="bi bi-trash"></i>
                         </button>
                     </div>
-                    <small class="d-block text-muted mb-2">
-                        Subtotal: ${formatearPrecio(item.subtotal)}
-                    </small>
-                    <button class="btn btn-sm btn-outline-danger btn-eliminar"
-                            data-producto-id="${item.producto.id}">
-                        <i class="bi bi-trash"></i>
-                    </button>
                 </div>
             </div>
         </div>
@@ -275,12 +271,14 @@ function agregarEventListeners() {
     document.querySelectorAll('.input-cantidad').forEach(input => {
         input.addEventListener('change', async (e) => {
             const productoId = parseInt(e.target.dataset.productoId);
-            const nuevaCantidad = parseInt(e.target.value);
-            if (nuevaCantidad >= 1) {
-                await manejarCambioCantidad(productoId, nuevaCantidad);
-            } else {
-                e.target.value = 1;
+            let nuevaCantidad = parseInt(e.target.value);
+
+            // Validar y corregir cantidad inválida
+            if (isNaN(nuevaCantidad) || nuevaCantidad < 1) {
+                nuevaCantidad = 1;
             }
+
+            await manejarCambioCantidad(productoId, nuevaCantidad);
         });
     });
 
@@ -394,32 +392,9 @@ async function inicializarCarrito() {
         const resultado = await obtenerCarrito();
         renderizarCarrito(resultado);
 
-        // Configurar eventos del offcanvas
-        configurarEventosOffcanvas();
-
         console.log('Carrito inicializado correctamente');
     } catch (error) {
         console.error('Error al inicializar carrito:', error);
-    }
-}
-
-/**
- * Configura los eventos del offcanvas para ocultar/mostrar el widget
- */
-function configurarEventosOffcanvas() {
-    const offcanvasElement = document.getElementById('carritoOffcanvas');
-    const widgetElement = document.querySelector('.carrito-widget-top');
-
-    if (offcanvasElement && widgetElement) {
-        // Cuando empieza a abrirse el offcanvas, ocultar el widget inmediatamente
-        offcanvasElement.addEventListener('show.bs.offcanvas', () => {
-            widgetElement.classList.add('hidden');
-        });
-
-        // Cuando se cierra el offcanvas, mostrar el widget
-        offcanvasElement.addEventListener('hidden.bs.offcanvas', () => {
-            widgetElement.classList.remove('hidden');
-        });
     }
 }
 

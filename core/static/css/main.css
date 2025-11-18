@@ -44,173 +44,108 @@ main.main-content {
     left: 0;
     right: 0;
     z-index: 1040;
-    transition: box-shadow 0.3s ease;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    background-color: rgba(255, 255, 255, 0.95) !important;
 }
 
 .navbar-brand {
     font-size: 1.5rem;
     transition: transform 0.3s ease;
+    font-weight: 700;
 }
 
 .navbar-brand:hover {
     transform: scale(1.05);
 }
 
+.navbar-brand img {
+    transition: transform 0.3s ease;
+}
+
+.navbar-brand:hover img {
+    transform: rotate(-5deg) scale(1.1);
+}
+
 .nav-link {
-    transition: color 0.3s ease;
+    transition: all 0.3s ease;
     font-weight: 500;
+    padding: 0.5rem 1rem !important;
+    border-radius: 8px;
+    position: relative;
 }
 
 .nav-link:hover {
     color: var(--primary-color) !important;
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.nav-link i {
+    margin-right: 5px;
+    transition: transform 0.3s ease;
+}
+
+.nav-link:hover i {
+    transform: translateY(-2px);
+}
+
+/* Separador visual entre secciones del navbar */
+.navbar-nav:first-child {
+    padding-left: 2rem;
+    border-left: 2px solid rgba(13, 110, 253, 0.1);
+}
+
+.nav-item .btn-primary {
+    border-radius: 25px;
+    padding: 0.5rem 1.25rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.2);
+}
+
+.nav-item .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
 }
 
 /* ======================
-   Widget del Carrito (Superior)
+   Carrito en Navbar
    ====================== */
-.carrito-widget-top {
-    position: fixed;
-    top: 80px;
-    right: 20px;
-    z-index: 1050;
-    animation: slideInRight 0.5s ease-out;
-    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
-}
-
-/* Ocultar widget cuando el offcanvas está abierto */
-.carrito-widget-top.hidden {
-    opacity: 0;
-    transform: translateX(120px);
-    pointer-events: none;
-}
-
-@keyframes slideInRight {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-.carrito-btn-modern {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 20px;
-    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
-    border: none;
-    border-radius: 12px;
-    color: white;
-    font-weight: 500;
-    box-shadow: 0 4px 16px rgba(13, 110, 253, 0.3);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-}
-
-.carrito-btn-modern::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s;
-}
-
-.carrito-btn-modern:hover::before {
-    left: 100%;
-}
-
-.carrito-btn-modern:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(13, 110, 253, 0.4);
-}
-
-.carrito-btn-modern:active {
-    transform: translateY(0);
-}
-
-.carrito-icon-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
-    backdrop-filter: blur(10px);
-}
-
-.carrito-icon-wrapper i {
-    font-size: 1.5rem;
-    color: white;
-}
-
-.carrito-badge-modern {
-    position: absolute;
-    top: -6px;
-    right: -6px;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 6px;
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-    color: white;
-    font-size: 0.7rem;
-    font-weight: bold;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid white;
-    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.4);
+#carritoBadge {
     animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
     0%, 100% {
-        transform: scale(1);
+        transform: scale(1) translate(-50%, -50%);
     }
     50% {
-        transform: scale(1.1);
+        transform: scale(1.1) translate(-50%, -50%);
     }
-}
-
-.carrito-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    text-align: left;
-}
-
-.carrito-label {
-    font-size: 0.75rem;
-    opacity: 0.9;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.carrito-total {
-    font-size: 1rem;
-    font-weight: bold;
-    letter-spacing: -0.5px;
 }
 
 /* ======================
    Offcanvas del Carrito
    ====================== */
 .offcanvas {
-    width: 400px !important;
+    width: 500px !important;
+    max-width: 90vw;
 }
 
 .offcanvas-footer {
     background-color: var(--light-color);
+}
+
+/* Ocultar spinners del input de cantidad */
+.input-cantidad::-webkit-outer-spin-button,
+.input-cantidad::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.input-cantidad[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 /* ======================
@@ -239,48 +174,49 @@ footer a:hover {
 /* ======================
    Responsive
    ====================== */
-@media (max-width: 768px) {
-    .carrito-widget-top {
-        top: 10px;
-        right: 10px;
+@media (max-width: 991px) {
+    .navbar-nav:first-child {
+        border-left: none;
+        padding-left: 0;
+        border-top: 2px solid rgba(13, 110, 253, 0.1);
+        padding-top: 1rem;
+        margin-top: 0.5rem;
     }
 
-    .carrito-btn-modern {
-        padding: 10px 14px;
-        gap: 8px;
+    .nav-link {
+        margin: 0.25rem 0;
     }
 
-    .carrito-icon-wrapper {
-        width: 36px;
-        height: 36px;
-    }
-
-    .carrito-icon-wrapper i {
-        font-size: 1.25rem;
-    }
-
-    .carrito-text {
-        display: none;
-    }
-
-    .offcanvas {
-        width: 100% !important;
+    .nav-item .btn-primary {
+        width: 100%;
+        margin-top: 1rem;
     }
 }
 
-@media (max-width: 480px) {
-    .carrito-btn-modern {
-        padding: 8px 12px;
+@media (max-width: 768px) {
+    .offcanvas {
+        width: 100% !important;
     }
 
-    .carrito-icon-wrapper {
-        width: 32px;
-        height: 32px;
+    .navbar-brand {
+        font-size: 1.25rem;
+    }
+
+    .navbar-brand img {
+        height: 40px !important;
     }
 }
 
 @media (max-width: 576px) {
-    .main-content {
+    main.main-content {
         padding: 1rem 0;
+    }
+
+    body {
+        padding-top: 60px;
+    }
+
+    .navbar {
+        padding: 0.5rem 0;
     }
 }

@@ -1,11 +1,10 @@
 {% load static %}
 
 <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
-  <div class="container">
+  <div class="container-fluid px-4">
     <!-- Logo -->
     <a class="navbar-brand fw-bold text-primary d-flex align-items-center" href="{% url 'home' %}">
       <img src="{% static 'core/img/logo.png' %}" alt="PeM" height="48" class="me-2">
-      <span>PeM</span>
     </a>
 
     <!-- Mobile Toggle -->
@@ -16,15 +15,21 @@
 
     <!-- Links -->
     <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+      <!-- Links izquierda (después del logo) -->
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item">
-          <a class="nav-link" href="{% url 'home' %}">
-            <i class="bi bi-house"></i> Inicio
+          <a class="nav-link" href="#">
+            <i class="bi bi-info-circle"></i> Sobre Nosotros
           </a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#">
-            <i class="bi bi-box-seam"></i> Productos
+            <i class="bi bi-envelope"></i> Contacto
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#">
+            <i class="bi bi-grid"></i> Catálogo
           </a>
         </li>
         <li class="nav-item">
@@ -32,6 +37,10 @@
             <i class="bi bi-search"></i> Buscar
           </a>
         </li>
+      </ul>
+
+      <!-- Links derecha (sesión y carrito) -->
+      <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center">
         {% if user.is_authenticated %}
         <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
@@ -39,7 +48,6 @@
             <i class="bi bi-person-circle"></i> Mi Cuenta
             </a>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-            <li><a class="dropdown-item" href="#">Mi Perfil</a></li>
             <li><a class="dropdown-item" href="#">Mis Pedidos</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item text-danger" href="{% url 'logout' %}">Cerrar Sesión</a></li>
@@ -52,6 +60,23 @@
             </a>
         </li>
         {% endif %}
+
+        <!-- Carrito -->
+        <li class="nav-item ms-lg-2">
+          <button class="btn btn-primary d-flex align-items-center gap-2 position-relative"
+                  type="button"
+                  data-bs-toggle="offcanvas"
+                  data-bs-target="#carritoOffcanvas"
+                  aria-controls="carritoOffcanvas">
+            <i class="bi bi-cart3 fs-5"></i>
+            <span class="d-none d-lg-inline">Carrito</span>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                  id="carritoBadge"
+                  style="font-size: 0.7rem;">
+              0
+            </span>
+          </button>
+        </li>
       </ul>
     </div>
   </div>
