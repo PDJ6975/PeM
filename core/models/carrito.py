@@ -8,10 +8,10 @@ class Carrito(models.Model):
     Permite compras sin registro (carrito de sesión) o con cliente registrado.
     """
 
-    cliente = models.ForeignKey(
+    cliente = models.OneToOneField(
         'Cliente',
         on_delete=models.CASCADE,
-        related_name='carritos',
+        related_name='carrito',
         null=True,
         blank=True,
         help_text='Cliente propietario del carrito (null para carritos de sesión anónima)'

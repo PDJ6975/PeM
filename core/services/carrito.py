@@ -43,13 +43,11 @@ def obtener_o_crear_carrito(cliente=None, carrito_id=None):
         return Carrito.objects.get(id=carrito_id)
 
     if cliente:
-        # Buscar carrito activo del cliente
-        carrito = Carrito.objects.filter(cliente=cliente).first()
-        if carrito:
-            return carrito
+        carrito, _ = Carrito.objects.get_or_create(cliente=cliente)
+        return carrito
 
-    # Crear nuevo carrito
-    return Carrito.objects.create(cliente=cliente)
+    # Crear nuevo carrito anónimo
+    return Carrito.objects.create(cliente=None)
 
 
 @transaction.atomic
