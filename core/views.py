@@ -56,6 +56,12 @@ def logout_view(request):
     logout(request)
     return redirect('home')
 
+def sobre_nosotros(request):
+    return render(request, 'core/sobre_nosotros.html')
+
+def contacto(request):
+    return render(request, 'core/contacto.html')
+
 # ============================================
 # API REST para el Carrito
 # ============================================
@@ -468,14 +474,33 @@ class LoginView(View):
             return JsonResponse({"error": "Error interno del servidor", "detalle": str(e)}, status=500)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class SeguimientoPedidoView(View):
+class SeguimientoPorTokenView(View):
     """
-    Vista temporal para seguimiento de pedidos.
-    Se reemplazará por una versión completa en una futura rama.
+    Vista accesible desde el enlace enviado al correo.
+    Muestra el estado del pedido usando su tracking_token.
     """
+    template_name = "core/seguimiento_pedido.html"
+
     def get(self, request, tracking_token):
-        return HttpResponse(f"Seguimiento temporal del pedido: {tracking_token}")
+        pedido = get_object_or_404(Pedido, tracking_token=tracking_token)
+
+        items = [
+            {
+                "producto": item.producto.nombre,
+                "cantidad": item.cantidad,
+                "precio_unitario": item.precio_unitario,
+                "subtotal": item.precio_unitario * item.cantidad
+            }
+            for item in pedido.items.all()
+        ]
+
+        return render(request, self.template_name, {
+            "pedido": pedido,
+            "items": items,
+            "success": True,
+            "from_token": True
+        })
+
 
 class CategoriasView(TemplateView):
     template_name = "core/categorias.html"
