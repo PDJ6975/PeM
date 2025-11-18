@@ -95,22 +95,58 @@ main.main-content {
     border-left: 2px solid rgba(13, 110, 253, 0.1);
 }
 
-.nav-item .btn-primary {
-    border-radius: 25px;
-    padding: 0.5rem 1.25rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.2);
+/* Separador entre elementos del navbar */
+.navbar-separator {
+    display: inline-block;
+    width: 1px;
+    height: 24px;
+    background-color: #dee2e6;
+    margin: 0 0.75rem;
+    vertical-align: middle;
 }
 
-.nav-item .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+/* Margen para centrar el carrito con el separador */
+@media (min-width: 992px) {
+    .ms-lg-n2 {
+        margin-left: 0.5rem !important;
+    }
 }
 
 /* ======================
    Carrito en Navbar
    ====================== */
+.btn-carrito {
+    background-color: transparent;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+    transition: all 0.3s ease;
+    color: #6c757d;
+}
+
+.btn-carrito:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.btn-carrito:active,
+.btn-carrito:focus {
+    background-color: rgba(13, 110, 253, 0.15);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    box-shadow: none;
+}
+
+.btn-carrito i {
+    transition: transform 0.3s ease;
+    font-size: 1.25rem;
+}
+
+.btn-carrito:hover i {
+    transform: scale(1.1);
+}
 #carritoBadge {
     animation: pulse 2s infinite;
 }

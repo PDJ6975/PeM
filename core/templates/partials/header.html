@@ -61,15 +61,19 @@
         </li>
         {% endif %}
 
+        <!-- Separador -->
+        <li class="nav-item d-none d-lg-flex">
+          <span class="navbar-separator"></span>
+        </li>
+
         <!-- Carrito -->
-        <li class="nav-item ms-lg-2">
-          <button class="btn btn-primary d-flex align-items-center gap-2 position-relative"
+        <li class="nav-item ms-lg-n2">
+          <button class="btn btn-carrito position-relative"
                   type="button"
                   data-bs-toggle="offcanvas"
                   data-bs-target="#carritoOffcanvas"
                   aria-controls="carritoOffcanvas">
             <i class="bi bi-cart3 fs-5"></i>
-            <span class="d-none d-lg-inline">Carrito</span>
             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
                   id="carritoBadge"
                   style="font-size: 0.7rem;">
