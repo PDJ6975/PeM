@@ -35,7 +35,10 @@ urlpatterns = [
     # API REST - Consulta de Pedido sin Cuenta
     path('seguimiento/<uuid:tracking_token>/', views.SeguimientoPedidoView.as_view(), name='seguimiento_pedido'),
 
-    path('api/carrito/procesar-pago/', views.ProcesarPagoView.as_view(), name='carrito_procesar_pago'),
+    path("api/carrito/procesar-pago/", views.create_checkout_session, name="create_checkout_session"),
+        # NUEVAS rutas de post-pago
+    path("checkout/success", views.checkout_success, name="checkout_success"),
+    path("checkout/cancelled", views.checkout_cancelled, name="checkout_cancelled"),
 
 
 

@@ -1,0 +1,16 @@
+<h1>¡Pago completado!</h1>
+<p>Nº de pedido: {{ pedido.numero_pedido }}</p>
+<p>Seguimiento: <a href="{% url 'seguimiento_pedido' tracking %}">{{ tracking }}</a></p>
+<a href="/" class="btn-volver">Volver al inicio</a>
+
+<style>
+  .btn-volver {
+    display:inline-block; 
+    padding:0.75rem 1rem; 
+    border-radius:8px; 
+    text-decoration:none; 
+    font-weight:600;
+    border:1px solid #ddd;
+  }
+  .btn-volver:hover { filter:brightness(0.95); }
+</style>

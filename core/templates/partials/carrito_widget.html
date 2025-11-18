@@ -36,6 +36,7 @@
     </div>
 
     <!-- Footer del carrito con total y botón de checkout -->
+
     <div class="offcanvas-footer border-top p-3">
         <div class="d-flex justify-content-between mb-3">
             <span class="fw-bold">Total:</span>
@@ -45,4 +46,77 @@
             <i class="bi bi-credit-card"></i> Procesar Pedido
         </button>
     </div>
+
+        <!-- Stripe.js (recomendado cargarlo en base.html para toda la web) -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+    const STRIPE_PK = "{{ STRIPE_PUBLISHABLE_KEY }}"; // tendrá valor si pasaste el contexto
+
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(";").shift();
+    }
+    const csrftoken = getCookie("csrftoken");
+
+    const btnProcesar = document.getElementById("btnProcesarPedido");
+
+    btnProcesar.addEventListener("click", async () => {
+        // ❌ Antes: si no había STRIPE_PK -> alert + return
+        // ✅ Ya no bloqueamos; la redirección por URL no la necesita.
+
+        btnProcesar.disabled = true;
+        const originalHtml = btnProcesar.innerHTML;
+        btnProcesar.innerHTML =
+        '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Redirigiendo a pago...';
+
+        try {
+        const resp = await fetch("{% url 'create_checkout_session' %}", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrftoken
+            }
+        });
+
+        if (!resp.ok) {
+            const errText = await resp.text();
+            throw new Error(errText || "No se pudo crear la sesión de pago.");
+        }
+
+        const data = await resp.json();
+        console.log("Respuesta create_checkout_session:", data);
+
+        // ✅ Ruta principal: redirección directa a la URL de Checkout
+        if (data.url) {
+            window.location.href = data.url;
+            return;
+        }
+
+        // 🔁 Fallback a Stripe.js sólo si no vino la URL
+        const sessionId = data.id || data.sessionId;
+        if (!sessionId) {
+            throw new Error("Respuesta sin 'url' ni session ID ('id'/'sessionId').");
+        }
+        if (!STRIPE_PK) {
+            throw new Error("Falta Stripe publishable key para usar Stripe.js.");
+        }
+        const stripe = Stripe(STRIPE_PK);
+        const result = await stripe.redirectToCheckout({ sessionId });
+        if (result && result.error) {
+            const msg = result.error.message || result.error.description || JSON.stringify(result.error) || "Error desconocido de Stripe.js";
+            throw new Error(msg);
+        }
+
+        } catch (e) {
+        console.error("Fallo iniciando pago:", e);
+        const msg = e?.message || e?.error?.message || (typeof e === "string" ? e : JSON.stringify(e)) || "Ocurrió un error al iniciar el pago. Inténtalo de nuevo.";
+        alert("Error: " + msg);
+        btnProcesar.disabled = false;
+        btnProcesar.innerHTML = originalHtml;
+        }
+    });
+    </script>
+
 </div>

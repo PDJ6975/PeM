@@ -137,3 +137,21 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SITE_URL = "http://127.0.0.1:8000"
 DEFAULT_FROM_EMAIL = "no-reply@pem.com"
+
+
+import environ
+import os
+
+# Inicializar entorno
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+
+SECRET_KEY = env('SECRET_KEY')
+DEBUG = env.bool('DEBUG', default=False)
+
+STRIPE_PUBLIC_KEY = env('STRIPE_PUBLIC_KEY')
+STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY')
+STRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET')
+
+STRIPE_SUCCESS_URL = "http://localhost:8000/checkout/success?session_id={CHECKOUT_SESSION_ID}"
+STRIPE_CANCEL_URL  = "http://localhost:8000/checkout/cancelled"
