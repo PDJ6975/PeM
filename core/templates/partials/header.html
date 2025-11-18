@@ -48,12 +48,17 @@
             <i class="bi bi-person-circle"></i> Mi Cuenta
             </a>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-            <li><a class="dropdown-item" href="#">Mis Pedidos</a></li>
+            <li><a class="dropdown-item" href="{% url 'mis_pedidos' %}">Mis Pedidos</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item text-danger" href="{% url 'logout' %}">Cerrar Sesión</a></li>
             </ul>
         </li>
         {% else %}
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'mis_pedidos' %}">
+              <i class="bi bi-truck"></i> Mis Pedidos
+            </a>
+        </li>
         <li class="nav-item">
             <a class="nav-link" href="{% url 'login' %}">
             <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row">
+    <div class="col-12">
+      <h1 class="mb-4">Mis Pedidos</h1>
+      
+      {% if pedidos %}
+        <div class="row g-4">
+          {% for p in pedidos %}
+            <div class="col-md-6 col-lg-4">
+              <div class="card shadow-sm h-100">
+                <div class="card-body">
+                  <h5 class="card-title">Pedido #{{ p.numero_pedido }}</h5>
+                  <p class="card-text">
+                    <span class="badge {% if p.estado == 'cancelado' %}bg-danger{% elif p.estado == 'entregado' %}bg-success{% elif p.estado == 'enviado' %}bg-info{% else %}bg-primary{% endif %}">{{ p.get_estado_display }}</span>
+                  </p>
+                  <p class="text-muted mb-3">
+                    <i class="bi bi-calendar"></i> {{ p.fecha_creacion|date:"d/m/Y H:i" }}
+                  </p>
+                  <p class="fw-bold">Total: {{ p.total }} €</p>
+                  <a href="{% url 'pedido_seguimiento' numero_pedido=p.numero_pedido %}" 
+                     class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-eye"></i> Ver Seguimiento
+                  </a>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="alert alert-info" role="alert">
+          <i class="bi bi-info-circle"></i> No tienes pedidos registrados.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
