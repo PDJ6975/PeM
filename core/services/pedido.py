@@ -4,23 +4,30 @@ from datetime import timedelta
 from core.models.pedido import Pedido
 from core.models.item_pedido import ItemPedido
 from core.models.producto import Producto
+from django.core.exceptions import ObjectDoesNotExist
 
 class PedidoService:
     
     @staticmethod
-    def view_order(email, order_code):
+    def view_order(email: str, order_code: str):
         """
-        Verifica si un pedido existe con el email y código de pedido
+        Devuelve un pedido a partir del email del cliente y el tracking_token.
+        Lanza ValueError si falta alguno de los parámetros.
+        Devuelve None si no se encuentra.
         """
-        if not email or not order_code:
-            raise ValueError("El email y código de pedido son obligatorios")
+
+        if not email:
+            raise ValueError("El email es obligatorio para consultar el pedido.")
+        if not order_code:
+            raise ValueError("El código de pedido es obligatorio.")
+
         try:
-            pedido = Pedido.objects.select_related('cliente').get(
-                cliente__email=email,
-                codigo=order_code
+            pedido = Pedido.objects.select_related("cliente").get(
+                cliente__email__iexact=email,
+                tracking_token=order_code
             )
             return pedido
-        except Pedido.DoesNotExist:
+        except ObjectDoesNotExist:
             return None
     
     @staticmethod

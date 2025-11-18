@@ -33,8 +33,7 @@ urlpatterns = [
     path('api/auth/login/', views.LoginView.as_view(), name='api_auth_login'),
 
     # API REST - Consulta de Pedido sin Cuenta
-    path('seguimiento/<uuid:tracking_token>/', views.SeguimientoPedidoView.as_view(), name='seguimiento_pedido'),
-
+    path("seguimiento/<uuid:tracking_token>/", views.SeguimientoPorTokenView.as_view(), name="seguimiento_por_token"),
     path("api/carrito/procesar-pago/", views.create_checkout_session, name="create_checkout_session"),
         # NUEVAS rutas de post-pago
     path("checkout/success", views.checkout_success, name="checkout_success"),
