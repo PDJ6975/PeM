@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sobre Nosotros - PeM{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0" style="background-color: rgba(13, 110, 253, 0.03);">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <img src="{% static 'core/img/logo.png' %}" alt="PeM" height="80" class="mb-3">
+                        <h1 class="fw-bold text-primary mb-4">Sobre Nosotros</h1>
+                    </div>
+
+                    <div class="sobre-nosotros-content">
+                        <p class="lead text-center mb-4">
+                            En <strong>PeM</strong> creemos que las mascotas no son solo animales: son compañeros, parte de la familia y quienes nos regalan los mejores momentos del día.
+                        </p>
+
+                        <p class="mb-4">
+                            Por eso hemos creado una tienda pensada especialmente para ellos, donde encontrarán diversión, bienestar y mucho amor en cada producto.
+                        </p>
+
+                        <p class="mb-4">
+                            Somos una empresa apasionada por el mundo animal, y trabajamos para ofrecer <strong>juguetes seguros, duraderos y pensados para estimular el juego y la felicidad</strong> de tu mascota, ya sea perro, gato o cualquier fiel amigo peludo.
+                        </p>
+
+                        <p class="mb-4">
+                            Seleccionamos cuidadosamente a nuestros proveedores para garantizar productos de calidad, con materiales respetuosos y adaptados a cada tipo de juego. Además, buscamos que la experiencia de compra sea <strong>rápida, sencilla y totalmente segura</strong>, porque sabemos que lo más importante es volver pronto a jugar con tu compañero.
+                        </p>
+
+                        <p class="mb-4">
+                            Nuestro objetivo es acompañarte en el día a día de tu mascota, aportando alegría y la mejor atención en español, con un equipo siempre dispuesto a ayudarte.
+                        </p>
+
+                        <p class="text-center text-primary fw-bold fs-5 mt-5">
+                            Porque una mascota feliz… es una familia feliz.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.sobre-nosotros-content p {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #495057;
+}
+
+.card {
+    border-radius: 16px;
+}
+</style>
+{% endblock %}

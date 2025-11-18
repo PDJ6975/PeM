@@ -53,6 +53,12 @@ def logout_view(request):
     logout(request)
     return redirect('home')
 
+def sobre_nosotros(request):
+    return render(request, 'core/sobre_nosotros.html')
+
+def contacto(request):
+    return render(request, 'core/contacto.html')
+
 # ============================================
 # API REST para el Carrito
 # ============================================
