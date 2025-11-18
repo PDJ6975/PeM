@@ -16,6 +16,10 @@ from core.services.catalogo import buscar_productos, obtener_productos_destacado
 from core.models import Producto
 from .models import Categoria, Marca
 import json
+import logging
+
+# Configurar logger para este módulo
+logger = logging.getLogger(__name__)
 
 from core.models.carrito import Carrito
 from core.models.item_carrito import ItemCarrito
@@ -61,20 +65,60 @@ class CarritoBaseView(View):
 
     def get_carrito_id(self, request):
         """
-        Obtiene o crea el ID del carrito desde la sesión.
+        Obtiene o crea el ID del carrito con persistencia para usuarios registrados.
 
-        Para carritos anónimos (sin registro), almacenamos el carrito_id
-        en la sesión. Para usuarios autenticados, podemos usar su cliente.
+        Comportamiento:
+        - Usuarios autenticados: carrito persistido en BD (no depende de sesión)
+        - Usuarios anónimos: carrito almacenado en sesión
+        - Al autenticarse, migra automáticamente carrito anónimo al registrado
         """
         if not request.session.session_key:
             request.session.create()
 
+        # === USUARIOS AUTENTICADOS ===
+        if request.user.is_authenticated:
+            # 1. Buscar carrito del usuario registrado en BD
+            carrito = Carrito.objects.filter(cliente=request.user).first()
+
+            # 2. Verificar si hay carrito anónimo en sesión para migrar
+            carrito_anonimo_id = request.session.get('carrito_id')
+
+            if carrito_anonimo_id:
+                try:
+                    # Bloquear el carrito anónimo para evitar race conditions
+                    carrito_anonimo = Carrito.objects.select_for_update().get(
+                        id=carrito_anonimo_id,
+                        cliente__isnull=True
+                    )
+
+                    if carrito:
+                        # Ya tiene carrito registrado: migrar productos del anónimo
+                        carrito_service.migrar_carrito(carrito_anonimo_id, request.user)
+                    else:
+                        # No tiene carrito registrado: convertir el anónimo en suyo
+                        carrito_anonimo.cliente = request.user
+                        carrito_anonimo.save()
+                        carrito = carrito_anonimo
+
+                    # Limpiar carrito anónimo de la sesión
+                    del request.session['carrito_id']
+
+                except Carrito.DoesNotExist:
+                    # El carrito de sesión ya no existe, limpiar referencia
+                    del request.session['carrito_id']
+
+            # 3. Si no tiene carrito, crear uno nuevo
+            if not carrito:
+                carrito = carrito_service.obtener_o_crear_carrito(cliente=request.user)
+
+            return carrito.id
+
+        # === USUARIOS ANÓNIMOS ===
         carrito_id = request.session.get('carrito_id')
 
         if not carrito_id:
-            # Crear nuevo carrito
-            cliente = request.user if request.user.is_authenticated else None
-            carrito = carrito_service.obtener_o_crear_carrito(cliente=cliente)
+            # Crear nuevo carrito anónimo
+            carrito = carrito_service.obtener_o_crear_carrito(cliente=None)
             carrito_id = carrito.id
             request.session['carrito_id'] = carrito_id
 
@@ -99,26 +143,6 @@ class AgregarProductoView(CarritoBaseView):
     """
     POST /api/carrito/agregar/
     Agrega un producto al carrito o incrementa su cantidad.
-
-    Body (JSON):
-        {
-            "producto_id": int,
-            "cantidad": int (opcional, default: 1)
-        }
-
-    Respuesta exitosa (200):
-        {
-            "success": true,
-            "mensaje": str,
-            "item": {...},
-            "carrito": {...}
-        }
-
-    Respuesta de error (400/404):
-        {
-            "error": true,
-            "mensaje": str
-        }
     """
 
     def post(self, request):
@@ -140,7 +164,7 @@ class AgregarProductoView(CarritoBaseView):
             # Obtener carrito
             carrito_id = self.get_carrito_id(request)
 
-            # Agregar producto usando el servicio
+            # Agregar producto
             resultado = carrito_service.agregar_producto(
                 carrito_id=carrito_id,
                 producto_id=producto_id,
@@ -173,7 +197,7 @@ class AgregarProductoView(CarritoBaseView):
             return self.error_response("JSON inválido", status=400)
 
         except Exception as e:
-            # Log del error en producción
+            # Log del error
             return self.error_response(
                 "Error interno del servidor",
                 status=500,
@@ -186,12 +210,6 @@ class ModificarCantidadView(CarritoBaseView):
     """
     PUT /api/carrito/modificar/
     Modifica la cantidad de un producto en el carrito.
-
-    Body (JSON):
-        {
-            "producto_id": int,
-            "cantidad": int
-        }
     """
 
     def put(self, request):
@@ -335,139 +353,6 @@ class VaciarCarritoView(CarritoBaseView):
                 detalle=str(e) if request.user.is_staff else None
             )
 
-
-# ============================================
-# API REST para Gestión de Pedidos (Admin)
-#
-# COMENTADO POR AHORA HASTA QUE SEPAMOS QUE PANEL DE 
-# ADMINISTRACIÓN QUIERE EL CLIENTE
-# ============================================
-
-'''
-@staff_member_required
-def admin_pedidos_lista(request):
-    """
-    GET /api/admin/pedidos/
-    Lista todos los pedidos con filtros opcionales.
-    
-    Query params opcionales:
-        - estado: filtrar por estado del pedido
-        - fecha_desde: filtrar desde fecha
-        - fecha_hasta: filtrar hasta fecha
-        - cliente_email: filtrar por email del cliente
-    """
-    filtros = {
-        'estado': request.GET.get('estado'),
-        'fecha_desde': request.GET.get('fecha_desde'),
-        'fecha_hasta': request.GET.get('fecha_hasta'),
-        'cliente_email': request.GET.get('cliente_email'),
-    }
-    
-    # Eliminar filtros vacíos
-    filtros = {k: v for k, v in filtros.items() if v}
-    
-    pedidos = PedidoService.obtener_pedidos_admin(filtros)
-    estadisticas = PedidoService.obtener_estadisticas_pedidos()
-    
-    context = {
-        'pedidos': pedidos,
-        'estadisticas': estadisticas,
-        'filtros': filtros,
-    }
-    
-    return render(request, 'core/admin/pedidos_lista.html', context)
-
-
-@staff_member_required
-def admin_pedido_detalle(request, pedido_id):
-    """
-    GET /api/admin/pedidos/<pedido_id>/
-    Obtiene el detalle completo de un pedido específico.
-    """
-    pedido = PedidoService.obtener_detalle_pedido(pedido_id)
-    
-    if not pedido:
-        messages.error(request, 'Pedido no encontrado')
-        return redirect('admin_pedidos_lista')
-    
-    context = {
-        'pedido': pedido,
-    }
-    
-    return render(request, 'core/admin/pedido_detalle.html', context)
-
-
-@staff_member_required
-def admin_pedido_cambiar_estado(request, pedido_id):
-    """
-    POST /api/admin/pedidos/<pedido_id>/cambiar-estado/
-    Cambia el estado de un pedido.
-    
-    POST params:
-        - estado: nuevo estado del pedido (pendiente|procesando|enviado|entregado|cancelado)
-    """
-    if request.method == 'POST':
-        nuevo_estado = request.POST.get('estado')
-        
-        if not nuevo_estado:
-            messages.error(request, 'Debe seleccionar un estado')
-            return redirect('admin_pedido_detalle', pedido_id=pedido_id)
-        
-        exito, resultado = PedidoService.cambiar_estado_pedido(pedido_id, nuevo_estado)
-        
-        if exito:
-            messages.success(request, f'Estado del pedido actualizado a {nuevo_estado}')
-        else:
-            messages.error(request, f'Error al cambiar estado: {resultado}')
-        
-        return redirect('admin_pedido_detalle', pedido_id=pedido_id)
-    
-    return redirect('admin_pedidos_lista')
-
-
-@staff_member_required
-def admin_pedido_cancelar(request, pedido_id):
-    """
-    POST /api/admin/pedidos/<pedido_id>/cancelar/
-    Cancela un pedido y restaura el stock de los productos.
-    
-    POST params:
-        - motivo: motivo de la cancelación (opcional)
-    """
-    if request.method == 'POST':
-        motivo = request.POST.get('motivo', 'Cancelado por el administrador')
-        exito, resultado = PedidoService.cancelar_pedido(pedido_id, motivo)
-        
-        if exito:
-            messages.success(request, 'Pedido cancelado correctamente. Stock restaurado.')
-        else:
-            messages.error(request, f'Error al cancelar: {resultado}')
-        
-        return redirect('admin_pedidos_lista')
-    
-    return redirect('admin_pedido_detalle', pedido_id=pedido_id)
-
-
-@staff_member_required
-def admin_pedidos_estadisticas(request):
-    """
-    GET /api/admin/pedidos/estadisticas/
-    Muestra las estadísticas de pedidos en formato HTML.
-    """
-    estadisticas = PedidoService.obtener_estadisticas_pedidos()
-    
-    # Si se solicita JSON (para APIs), devolver JSON
-    if request.GET.get('format') == 'json':
-        return JsonResponse(estadisticas)
-    
-    # Por defecto, mostrar HTML
-    context = {
-        'estadisticas': estadisticas,
-    }
-    
-    return render(request, 'core/admin/pedidos_estadisticas.html', context)
-'''
-
 # ============================================
 # API REST para Usuarios y Autenticación
 # ============================================
@@ -477,20 +362,6 @@ class RegisterView(View):
     """
     POST /api/auth/register/
     Registra un nuevo cliente.
-
-    Body (JSON):
-        {
-            "email": "test@example.com",
-            "password": "securepassword",
-            "nombre": "Pablo",
-            "apellidos": "Olivencia Moreno"
-        }
-
-    Respuesta (201):
-        {
-            "success": true,
-            "mensaje": "Usuario registrado correctamente"
-        }
     """
 
     def post(self, request):
@@ -527,19 +398,6 @@ class LoginView(View):
     """
     POST /api/auth/login/
     Inicia sesión con email y contraseña.
-
-    Body (JSON):
-        {
-            "email": "test@example.com",
-            "password": "securepassword"
-        }
-
-    Respuesta (200):
-        {
-            "success": true,
-            "mensaje": "Inicio de sesión exitoso",
-            "usuario": {...}
-        }
     """
 
     def post(self, request):
@@ -556,10 +414,42 @@ class LoginView(View):
 
             if not cliente:
                 return JsonResponse({"error": "Credenciales inválidas"}, status=401)
-            
 
             django_login(request, cliente)
 
+            # === MIGRACIÓN  DE CARRITO ===
+            # Si el usuario tenía un carrito anónimo, migrarlo al carrito del usuario
+            carrito_anonimo_id = request.session.get('carrito_id')
+
+            if carrito_anonimo_id:
+                try:
+                    # Bloquear el carrito anónimo para evitar race conditions
+                    carrito_anonimo = Carrito.objects.select_for_update().get(
+                        id=carrito_anonimo_id,
+                        cliente__isnull=True
+                    )
+
+                    # Buscar si el usuario ya tiene un carrito
+                    carrito_usuario = Carrito.objects.filter(cliente=cliente).first()
+
+                    if carrito_usuario:
+                        # Migrar productos del carrito anónimo al del usuario
+                        carrito_service.migrar_carrito(carrito_anonimo_id, cliente)
+                    else:
+                        # Convertir el carrito anónimo en el carrito del usuario
+                        carrito_anonimo.cliente = cliente
+                        carrito_anonimo.save()
+
+                    # Limpiar referencia del carrito anónimo en la sesión
+                    del request.session['carrito_id']
+
+                except Carrito.DoesNotExist:
+                    # El carrito ya no existe, limpiar la sesión
+                    if 'carrito_id' in request.session:
+                        del request.session['carrito_id']
+                except Exception as e:
+                    # Error en migración, registrar pero no fallar el login
+                    logger.error(f"Error migrando carrito en login: {e}", exc_info=True)
 
             return JsonResponse({
                 "success": True,
@@ -641,7 +531,7 @@ def api_productos(request):
     items = [{
         "id": p.id,
         "nombre": p.nombre,
-        "precio": str(p.precio_actual()),  # respeta lógica del modelo
+        "precio": str(p.precio_actual()),  
         "tiene_oferta": p.tiene_oferta(),
         "marca": p.marca.nombre,
         "categoria": p.categoria.nombre,
@@ -711,30 +601,36 @@ def _build_line_items(carrito_id):
 
 @csrf_exempt
 def create_checkout_session(request):
-    print("DEBUG [/api/carrito/procesar-pago/] method:", request.method)
-    print("DEBUG user:", request.user, "is_auth:", request.user.is_authenticated)
-    print("DEBUG cookies present?:", bool(request.COOKIES))
-    print("DEBUG session_key BEFORE create():", request.session.session_key)
+    logger.debug(
+        f"[Stripe Checkout] Iniciando sesión de pago - "
+        f"method={request.method}, user={request.user}, "
+        f"authenticated={request.user.is_authenticated}"
+    )
 
     if request.method != "POST":
-        print("DEBUG método no permitido:", request.method)
+        logger.warning(f"[Stripe Checkout] Método no permitido: {request.method}")
         return HttpResponseBadRequest("Método no permitido")
 
     # --- Recuperar carrito de la sesión ---
     carrito_id = request.session.get("carrito_id")
-    print(f"DEBUG carrito_id en sesión: {carrito_id} (tipo: {type(carrito_id)})")
+    logger.debug(f"[Stripe Checkout] Carrito ID en sesión: {carrito_id}")
+
     if not carrito_id:
+        logger.warning("[Stripe Checkout] No hay carrito en la sesión")
         return HttpResponseBadRequest("No hay carrito en la sesión")
 
     # --- Verificar que hay items en el carrito ---
     items_qs = ItemCarrito.objects.filter(carrito=carrito_id)
-    print("DEBUG num items en carrito:", items_qs.count())
+    num_items = items_qs.count()
+    logger.debug(f"[Stripe Checkout] Número de items en carrito: {num_items}")
+
     if not items_qs.exists():
+        logger.warning(f"[Stripe Checkout] Carrito {carrito_id} está vacío")
         return HttpResponseBadRequest("El carrito está vacío")
 
     # --- Construir line_items para Stripe ---
     line_items = _build_line_items(carrito_id)
-    print("DEBUG line_items construidos:", line_items)
+    logger.debug(f"[Stripe Checkout] Line items construidos: {len(line_items)} items")
 
     success_url = settings.STRIPE_SUCCESS_URL  # p.ej: ".../checkout/success?session_id={CHECKOUT_SESSION_ID}"
     cancel_url = settings.STRIPE_CANCEL_URL
@@ -767,12 +663,15 @@ def create_checkout_session(request):
     try:
         session = stripe.checkout.Session.create(**session_kwargs)
     except stripe.error.StripeError as e:
-        # Puedes loggear e.user_message / e.code para más detalle
-        print("ERROR Stripe:", repr(e))
+        logger.error(
+            f"[Stripe Checkout] Error creando sesión: {e.user_message or str(e)}",
+            exc_info=True,
+            extra={'stripe_code': getattr(e, 'code', None)}
+        )
         return HttpResponseBadRequest(getattr(e, "user_message", "Error con Stripe"))
 
     request.session["stripe_session_id"] = session.id
-    print("DEBUG stripe_session_id:", session.id)
+    logger.info(f"[Stripe Checkout] Sesión creada exitosamente: {session.id}")
 
     return JsonResponse({"id": session.id, "url": session.url})
 

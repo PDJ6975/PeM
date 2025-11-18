@@ -110,8 +110,8 @@ def agregar_producto(carrito_id, producto_id, cantidad=1):
     # Calcular nueva cantidad
     nueva_cantidad = item.cantidad + cantidad
 
-    # Validar stock disponible
-    if nueva_cantidad > producto.stock:
+    # Validar stock disponible (solo si el producto tiene stock limitado)
+    if producto.stock is not None and nueva_cantidad > producto.stock:
         raise StockInsuficienteError(
             f"Stock insuficiente para '{producto.nombre}'. "
             f"Disponible: {producto.stock}, Solicitado: {nueva_cantidad}"
@@ -175,8 +175,8 @@ def modificar_cantidad(carrito_id, producto_id, nueva_cantidad):
             f"El producto '{item.producto.nombre}' no está disponible"
         )
 
-    # Validar stock
-    if nueva_cantidad > item.producto.stock:
+    # Validar stock (solo si el producto tiene stock limitado)
+    if item.producto.stock is not None and nueva_cantidad > item.producto.stock:
         raise StockInsuficienteError(
             f"Stock insuficiente. Disponible: {item.producto.stock}"
         )
@@ -229,7 +229,6 @@ def eliminar_producto(carrito_id, producto_id):
         raise CarritoError(
             f"El producto no se encuentra en el carrito"
         )
-
 
 def obtener_carrito_detallado(carrito_id):
     """
@@ -308,7 +307,6 @@ def vaciar_carrito(carrito_id):
     except Carrito.DoesNotExist:
         raise CarritoError(f"Carrito con ID {carrito_id} no encontrado")
 
-
 @transaction.atomic
 def migrar_carrito(carrito_anonimo_id, cliente):
     """
@@ -361,10 +359,11 @@ def migrar_carrito(carrito_anonimo_id, cliente):
             # Producto ya existe, combinar cantidades
             nueva_cantidad = item_cliente.cantidad + item_anonimo.cantidad
 
-            # Validar stock disponible
-            if nueva_cantidad > item_anonimo.producto.stock:
-                # Ajustar a stock máximo disponible
-                nueva_cantidad = item_anonimo.producto.stock
+            # Validar stock disponible (solo si el producto tiene stock limitado)
+            if item_anonimo.producto.stock is not None:
+                if nueva_cantidad > item_anonimo.producto.stock:
+                    # Ajustar a stock máximo disponible
+                    nueva_cantidad = item_anonimo.producto.stock
 
             item_cliente.cantidad = nueva_cantidad
             item_cliente.save()

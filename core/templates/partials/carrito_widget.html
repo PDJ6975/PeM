@@ -15,7 +15,7 @@
     </button>
 </div>
 
-<!-- Offcanvas del carrito (panel lateral) -->
+<!-- Panel lateral del carrito -->
 <div class="offcanvas offcanvas-end" tabindex="-1" id="carritoOffcanvas" aria-labelledby="carritoOffcanvasLabel">
     <div class="offcanvas-header border-bottom">
         <h5 class="offcanvas-title" id="carritoOffcanvasLabel">
@@ -47,10 +47,10 @@
         </button>
     </div>
 
-        <!-- Stripe.js (recomendado cargarlo en base.html para toda la web) -->
+        <!-- Stripe.js -->
     <script src="https://js.stripe.com/v3/"></script>
     <script>
-    const STRIPE_PK = "{{ STRIPE_PUBLISHABLE_KEY }}"; // tendrá valor si pasaste el contexto
+    const STRIPE_PK = "{{ STRIPE_PUBLISHABLE_KEY }}";
 
     function getCookie(name) {
         const value = `; ${document.cookie}`;
@@ -62,8 +62,6 @@
     const btnProcesar = document.getElementById("btnProcesarPedido");
 
     btnProcesar.addEventListener("click", async () => {
-        // ❌ Antes: si no había STRIPE_PK -> alert + return
-        // ✅ Ya no bloqueamos; la redirección por URL no la necesita.
 
         btnProcesar.disabled = true;
         const originalHtml = btnProcesar.innerHTML;
@@ -88,13 +86,11 @@
         const data = await resp.json();
         console.log("Respuesta create_checkout_session:", data);
 
-        // ✅ Ruta principal: redirección directa a la URL de Checkout
         if (data.url) {
             window.location.href = data.url;
             return;
         }
 
-        // 🔁 Fallback a Stripe.js sólo si no vino la URL
         const sessionId = data.id || data.sessionId;
         if (!sessionId) {
             throw new Error("Respuesta sin 'url' ni session ID ('id'/'sessionId').");

@@ -100,4 +100,7 @@ class Producto(models.Model):
 
     def esta_agotado(self):
         """Verifica si el producto está agotado (Requisito 011)"""
+        # Si stock es NULL (ilimitado), nunca está agotado
+        if self.stock is None:
+            return not self.esta_disponible
         return self.stock == 0 or not self.esta_disponible

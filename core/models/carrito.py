@@ -4,7 +4,7 @@ from django.utils import timezone
 
 class Carrito(models.Model):
     """
-    Modelo para representar el carrito de compras temporal de un cliente.
+    Modelo para representar el carrito de compras de un cliente.
     Permite compras sin registro (carrito de sesión) o con cliente registrado.
     """
 

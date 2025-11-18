@@ -46,6 +46,9 @@ class ItemCarrito(models.Model):
 
     def puede_agregar_cantidad(self, cantidad_adicional=1):
         """Verifica si hay stock suficiente para agregar más unidades"""
+        # Si el producto tiene stock ilimitado (NULL), siempre se puede agregar
+        if self.producto.stock is None:
+            return True
         return (self.cantidad + cantidad_adicional) <= self.producto.stock
 
     def precio_unitario(self):
