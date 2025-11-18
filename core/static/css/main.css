@@ -27,6 +27,7 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    padding-top: 50px; 
 }
 
 main.main-content {
@@ -37,6 +38,15 @@ main.main-content {
 /* ======================
    Navbar
    ====================== */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1040;
+    transition: box-shadow 0.3s ease;
+}
+
 .navbar-brand {
     font-size: 1.5rem;
     transition: transform 0.3s ease;
