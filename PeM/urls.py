@@ -39,6 +39,8 @@ urlpatterns = [
         # NUEVAS rutas de post-pago
     path("checkout/success", views.checkout_success, name="checkout_success"),
     path("checkout/cancelled", views.checkout_cancelled, name="checkout_cancelled"),
+    path("checkout/cod/", views.checkout_cod, name="checkout_cod"),
+
 
 
 

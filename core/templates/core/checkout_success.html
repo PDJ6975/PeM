@@ -1,16 +1,121 @@
-<h1>¡Pago completado!</h1>
-<p>Nº de pedido: {{ pedido.numero_pedido }}</p>
-<p>Seguimiento: <a href="{% url 'seguimiento_pedido' tracking %}">{{ tracking }}</a></p>
-<a href="/" class="btn-volver">Volver al inicio</a>
+{# core/checkout_success.html #}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% if pago_cod %}Pedido registrado (Contra reembolso){% else %}Pago completado{% endif %}</title>
+  <style>
+    :root {
+      --ok:#10b981;     /* verde */
+      --ink:#111827;    /* gris muy oscuro */
+      --muted:#6b7280;  /* gris medio */
+      --bg:#f9fafb;     /* fondo claro */
+      --card:#ffffff;   /* tarjeta */
+      --ring:#e5e7eb;   /* borde sutil */
+      --brand:#2563eb;  /* azul marca */
+      --brand-weak:#eff6ff;
+      --warn:#f59e0b;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color:var(--ink); background:var(--bg);
+    }
+    .wrap {
+      max-width: 760px; margin: 40px auto; padding: 0 16px;
+    }
+    .card {
+      background:var(--card); border:1px solid var(--ring); border-radius:14px; padding:24px;
+      box-shadow: 0 10px 20px rgba(0,0,0,.04);
+    }
+    h1 {
+      margin:0 0 6px; font-size:clamp(22px, 3.2vw, 28px);
+    }
+    .sub {
+      margin:0 0 18px; color:var(--muted);
+    }
+    .badge {
+      display:inline-flex; align-items:center; gap:8px;
+      background: var(--brand-weak); color: var(--brand);
+      border:1px solid #dbeafe; font-weight:600;
+      padding:6px 10px; border-radius:999px; font-size:13px;
+    }
+    .badge--cod { background:#fff7ed; border-color:#ffedd5; color:#9a3412; }
+    .ok {
+      display:inline-flex; align-items:center; gap:8px; color:var(--ok); font-weight:700;
+    }
+    .grid {
+      display:grid; gap:16px; grid-template-columns: 1fr;
+    }
+    @media (min-width:720px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+    .kv { display:grid; grid-template-columns: 140px 1fr; gap:8px 10px; font-size:15px; }
+    .kv div:nth-child(odd) { color:var(--muted); }
+    .cta {
+      display:flex; gap:10px; flex-wrap:wrap; margin-top:18px;
+    }
+    .btn {
+      display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      padding:10px 14px; border-radius:10px; border:1px solid var(--ring);
+      background:#fff; color:var(--ink); text-decoration:none; font-weight:600;
+      transition: transform .04s ease, background .15s ease;
+    }
+    .btn:hover { background:#f8fafc; }
+    .btn:active { transform: translateY(1px); }
+    .btn--primary {
+      background:var(--brand); color:#fff; border-color:transparent;
+    }
+    .btn--primary:hover { background:#1d4ed8; }
+    .note {
+      background:#f8fafc; border:1px dashed var(--ring);
+      padding:12px; border-radius:10px; color:#374151; font-size:14px;
+    }
+    .muted { color:var(--muted); font-size:14px; }
+    .sep { height:1px; background:var(--ring); margin:16px 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      {% if pago_cod %}
+        <div class="badge badge--cod">Pago a contrareembolso</div>
+        <h1>¡Pedido registrado correctamente!</h1>
+        <p class="sub">Abonarás el importe al mensajero en el momento de la entrega.</p>
+      {% else %}
+        <div class="badge">Pago con tarjeta (Stripe)</div>
+        <h1>¡Pago completado!</h1>
+        <p class="sub">Hemos recibido tu pago y estamos preparando tu pedido.</p>
+      {% endif %}
 
-<style>
-  .btn-volver {
-    display:inline-block; 
-    padding:0.75rem 1rem; 
-    border-radius:8px; 
-    text-decoration:none; 
-    font-weight:600;
-    border:1px solid #ddd;
-  }
-  .btn-volver:hover { filter:brightness(0.95); }
-</style>
+      <div class="grid">
+        <div>
+          <div class="kv">
+            <div>Nº de pedido</div>
+            <div><strong>{{ pedido.numero_pedido }}</strong></div>
+
+            <div>Seguimiento</div>
+            <div>
+              <a href="/seguimiento/{{ tracking }}/">{{ tracking }}</a>
+            </div>
+
+            {% if not pago_cod and session_id %}
+              <div>ID sesión Stripe</div>
+              <div class="muted">{{ session_id }}</div>
+            {% endif %}
+
+            <div>Estado</div>
+            <div class="ok">✓ Confirmado</div>
+          </div>
+
+          <div class="cta">
+            <a class="btn btn--primary" href="/seguimiento/{{ tracking }}/">Ver seguimiento</a>
+            <a class="btn" href="/">Volver al inicio</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
