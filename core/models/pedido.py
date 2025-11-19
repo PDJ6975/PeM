@@ -186,7 +186,7 @@ class Pedido(models.Model):
         Verifica si el pedido puede ser modificado por el administrador.
         Solo los pedidos pendientes pueden modificarse.
         """
-        return self.estado == 'pendiente'
+        return self.estado in ['pendiente', 'confirmado']
 
     def cancelar_pedido(self):
         """

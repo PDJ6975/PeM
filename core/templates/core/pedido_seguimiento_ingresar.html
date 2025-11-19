@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow">
+        <div class="card-body p-4">
+          <h1 class="card-title text-center mb-4">Seguimiento de Pedido</h1>
+          <p class="text-muted text-center mb-4">
+            Introduce tu número de pedido y el token de seguimiento para acceder a la información completa de tu pedido.
+          </p>
+          
+          <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="numero_pedido" class="form-label">Número de Pedido *</label>
+              <input type="text" 
+                     class="form-control form-control-lg" 
+                     id="numero_pedido"
+                     name="numero_pedido" 
+                     placeholder="Ej: PED-20241118-XXXX" 
+                     required 
+                     autofocus>
+              <div class="form-text">
+                Lo encontrarás en el email de confirmación de tu compra.
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="tracking_token" class="form-label">Token de Seguimiento *</label>
+              <input type="text" 
+                     class="form-control form-control-lg" 
+                     id="tracking_token"
+                     name="tracking_token" 
+                     placeholder="Ej: a1b2c3d4-5678-90ab-cdef-1234567890ab" 
+                     required>
+              <div class="form-text">
+                Token único enviado por email. Tiene formato UUID (8-4-4-4-12 caracteres).
+              </div>
+            </div>
+            
+            {% if error %}
+              <div class="alert alert-danger" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> {{ error }}
+              </div>
+            {% endif %}
+            
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-search"></i> Consultar Pedido
+              </button>
+            </div>
+          </form>
+          
+          <div class="text-center mt-4">
+            <p class="text-muted small">
+              ¿Ya tienes cuenta? 
+              <a href="{% url 'login' %}">Inicia sesión</a> para ver todos tus pedidos sin necesidad de token.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

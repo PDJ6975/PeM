@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <!-- Cabecera del pedido -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+          <h2 class="mb-0">
+            <i class="bi bi-receipt"></i> Pedido #{{ pedido.numero_pedido }}
+          </h2>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <h6 class="text-muted">Estado</h6>
+              <span class="badge {% if pedido.estado == 'cancelado' %}bg-danger{% elif pedido.estado == 'entregado' %}bg-success{% elif pedido.estado == 'enviado' %}bg-info{% else %}bg-primary{% endif %} fs-6">{{ pedido.get_estado_display }}</span>
+            </div>
+            <div class="col-md-6 mb-3">
+              <h6 class="text-muted">Fecha de Pedido</h6>
+              <p class="mb-0">
+                <i class="bi bi-calendar"></i> {{ pedido.fecha_creacion|date:"d/m/Y H:i" }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Botones de acción (solo propietario) -->
+          {% if es_propietario %}
+            <div class="d-flex gap-2 mt-3">
+              {% if pedido.puede_modificar %}
+                <a href="{% url 'pedido_modificar' numero_pedido=pedido.numero_pedido %}" 
+                   class="btn btn-warning">
+                  <i class="bi bi-pencil"></i> Modificar Pedido
+                </a>
+              {% endif %}
+              
+              {% if pedido.puede_cancelar %}
+                <button type="button" 
+                        class="btn btn-danger" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#modalCancelar">
+                  <i class="bi bi-x-circle"></i> Cancelar Pedido
+                </button>
+              {% endif %}
+            </div>
+
+            {% if not pedido.puede_modificar and not pedido.puede_cancelar %}
+              <div class="alert alert-info mt-3" role="alert">
+                <i class="bi bi-info-circle"></i> Este pedido ya no puede ser modificado ni cancelado.
+              </div>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Artículos del pedido -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header">
+          <h4 class="mb-0"><i class="bi bi-box-seam"></i> Artículos</h4>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th class="text-center">Cantidad</th>
+                  <th class="text-end">Precio Unit.</th>
+                  <th class="text-end">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in items %}
+                  <tr>
+                    <td>{{ item.producto.nombre }}</td>
+                    <td class="text-center">{{ item.cantidad }}</td>
+                    <td class="text-end">{{ item.precio_unitario }} €</td>
+                    <td class="text-end fw-bold">{{ item.total }} €</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumen de importes -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-body">
+          <div class="row">
+            <div class="col-6 text-end">
+              <p class="mb-2">Subtotal:</p>
+              {% if pedido.impuestos %}
+                <p class="mb-2">Impuestos:</p>
+              {% endif %}
+              {% if pedido.coste_entrega %}
+                <p class="mb-2">Envío:</p>
+              {% endif %}
+              {% if pedido.descuento %}
+                <p class="mb-2 text-success">Descuento:</p>
+              {% endif %}
+              <h5 class="mb-0">Total:</h5>
+            </div>
+            <div class="col-6 text-end">
+              <p class="mb-2">{{ pedido.subtotal }} €</p>
+              {% if pedido.impuestos %}
+                <p class="mb-2">{{ pedido.impuestos }} €</p>
+              {% endif %}
+              {% if pedido.coste_entrega %}
+                <p class="mb-2">{{ pedido.coste_entrega }} €</p>
+              {% endif %}
+              {% if pedido.descuento %}
+                <p class="mb-2 text-success">-{{ pedido.descuento }} €</p>
+              {% endif %}
+              <h5 class="mb-0 text-primary">{{ pedido.total }} €</h5>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Datos de entrega (solo propietario) -->
+      {% if es_propietario %}
+        <div class="card shadow-sm">
+          <div class="card-header">
+            <h4 class="mb-0"><i class="bi bi-truck"></i> Datos de Entrega</h4>
+          </div>
+          <div class="card-body">
+            <p class="mb-2">
+              <i class="bi bi-geo-alt"></i> 
+              <strong>Dirección:</strong><br>
+              {{ pedido.direccion_envio|linebreaks }}
+            </p>
+            <p class="mb-0">
+              <i class="bi bi-telephone"></i> 
+              <strong>Teléfono:</strong> {{ pedido.telefono }}
+            </p>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Botón volver -->
+      <div class="text-center mt-4">
+        {% if user.is_authenticated %}
+          <a href="{% url 'mis_pedidos' %}" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-left"></i> Volver a Mis Pedidos
+          </a>
+        {% else %}
+          <a href="{% url 'home' %}" class="btn btn-outline-primary">
+            <i class="bi bi-house"></i> Volver al Inicio
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmación de cancelación -->
+<div class="modal fade" id="modalCancelar" tabindex="-1" aria-labelledby="modalCancelarLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="modalCancelarLabel">
+          <i class="bi bi-exclamation-triangle"></i> Confirmar Cancelación
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de que deseas cancelar el pedido <strong>#{{ pedido.numero_pedido }}</strong>?</p>
+        <p class="text-muted">Esta acción no se puede deshacer.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, volver</button>
+        <form method="post" action="{% url 'pedido_cancelar' numero_pedido=pedido.numero_pedido %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Sí, cancelar pedido</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

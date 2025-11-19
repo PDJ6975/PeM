@@ -11,6 +11,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth import login as django_login
+from django.contrib.auth.decorators import login_required
 
 from core.services.catalogo import buscar_productos, obtener_productos_destacados
 from core.models import Producto
@@ -1000,4 +1001,194 @@ def checkout_cod(request):
     }
     return render(request, "core/checkout_success.html", ctx)
     
+def mis_pedidos(request):
+    # Si no está logeado, pide número de pedido
+    if not request.user.is_authenticated:
+        return redirect('pedido_seguimiento_ingresar')
 
+    pedidos = (Pedido.objects
+               .filter(cliente=request.user)
+               .order_by('-fecha_creacion')
+               .prefetch_related('items__producto'))
+    return render(request, 'core/mis_pedidos.html', {'pedidos': pedidos})
+
+def pedido_seguimiento_ingresar(request):
+    error = None
+    if request.method == 'POST':
+        numero_pedido = (request.POST.get('numero_pedido') or '').strip()
+        tracking_token = (request.POST.get('tracking_token') or '').strip()
+        
+        if not numero_pedido or not tracking_token:
+            error = 'Debes introducir tanto el número de pedido como el token de seguimiento.'
+        else:
+            # Validar que ambos coincidan con un pedido existente
+            try:
+                pedido = Pedido.objects.get(
+                    numero_pedido=numero_pedido,
+                    tracking_token=tracking_token
+                )
+                # Guardar en sesión para acceso temporal (sin login)
+                request.session['pedido_acceso_temporal'] = {
+                    'numero_pedido': numero_pedido,
+                    'tracking_token': str(tracking_token),
+                    'timestamp': timezone.now().isoformat()
+                }
+                return redirect('pedido_seguimiento', numero_pedido=numero_pedido)
+            except Pedido.DoesNotExist:
+                error = 'Número de pedido o token de seguimiento incorrectos.'
+            except ValidationError:
+                error = 'Formato de token inválido.'
+                
+    return render(request, 'core/pedido_seguimiento_ingresar.html', {'error': error})
+
+
+def pedido_seguimiento(request, numero_pedido):
+    pedido = get_object_or_404(Pedido.objects.prefetch_related('items__producto'), numero_pedido=numero_pedido)
+
+    # Control de acceso
+    es_propietario = False
+    tiene_acceso = False
+    
+    if request.user.is_authenticated:
+        # Usuario autenticado
+        if request.user.is_staff or pedido.cliente_id == request.user.id:
+            tiene_acceso = True
+            es_propietario = (pedido.cliente_id == request.user.id)
+        else:
+            messages.error(request, 'No tienes acceso a este pedido.')
+            return redirect('mis_pedidos')
+    else:
+        # Usuario anónimo: verificar acceso temporal
+        acceso_temporal = request.session.get('pedido_acceso_temporal')
+        
+        if acceso_temporal:
+            # Verificar que el acceso es para este pedido específico
+            if (acceso_temporal.get('numero_pedido') == numero_pedido and 
+                acceso_temporal.get('tracking_token') == str(pedido.tracking_token)):
+                
+                # Verificar que el acceso no ha expirado (opcional: 1 hora)
+                try:
+                    timestamp = timezone.datetime.fromisoformat(acceso_temporal['timestamp'])
+                    if timezone.now() - timestamp < timezone.timedelta(hours=1):
+                        tiene_acceso = True
+                        es_propietario = True  # Tiene acceso completo con token válido
+                    else:
+                        messages.warning(request, 'Tu sesión de seguimiento ha expirado. Por favor, introduce los datos nuevamente.')
+                        return redirect('pedido_seguimiento_ingresar')
+                except (KeyError, ValueError):
+                    pass
+        
+        if not tiene_acceso:
+            messages.error(request, 'Debes proporcionar el número de pedido y el token de seguimiento.')
+            return redirect('pedido_seguimiento_ingresar')
+
+    return render(request, 'core/pedido_seguimiento.html', {
+        'pedido': pedido,
+        'items': pedido.items.all(),
+        'es_propietario': es_propietario
+    })
+
+
+def _verificar_acceso_pedido(request, pedido):
+    """
+    Verifica si el usuario tiene acceso al pedido.
+    Retorna (tiene_acceso: bool, es_propietario: bool)
+    """
+    if request.user.is_authenticated:
+        if request.user.is_staff:
+            return (True, False)
+        if pedido.cliente_id == request.user.id:
+            return (True, True)
+        return (False, False)
+    
+    # Usuario anónimo: verificar sesión temporal
+    acceso_temporal = request.session.get('pedido_acceso_temporal')
+    if not acceso_temporal:
+        return (False, False)
+    
+    if (acceso_temporal.get('numero_pedido') == pedido.numero_pedido and 
+        acceso_temporal.get('tracking_token') == str(pedido.tracking_token)):
+        try:
+            timestamp = timezone.datetime.fromisoformat(acceso_temporal['timestamp'])
+            if timezone.now() - timestamp < timezone.timedelta(hours=1):
+                return (True, True)
+        except (KeyError, ValueError):
+            pass
+    
+    return (False, False)
+
+
+def pedido_modificar(request, numero_pedido):
+    pedido = get_object_or_404(Pedido.objects.prefetch_related('items__producto'), numero_pedido=numero_pedido)
+    
+    # Verificar acceso
+    tiene_acceso, es_propietario = _verificar_acceso_pedido(request, pedido)
+    
+    if not tiene_acceso:
+        messages.error(request, 'No tienes acceso a este pedido.')
+        if request.user.is_authenticated:
+            return redirect('mis_pedidos')
+        return redirect('pedido_seguimiento_ingresar')
+    
+    if not es_propietario and not request.user.is_staff:
+        messages.error(request, 'No tienes permiso para modificar este pedido.')
+        return redirect('pedido_seguimiento', numero_pedido=numero_pedido)
+    
+    # Verificar que se puede modificar
+    if not pedido.puede_modificar():
+        messages.warning(request, 'Este pedido ya no puede ser modificado.')
+        return redirect('pedido_seguimiento', numero_pedido=numero_pedido)
+    
+    if request.method == 'POST':
+        direccion_envio = request.POST.get('direccion_envio', '').strip()
+        telefono = request.POST.get('telefono', '').strip()
+        
+        if not direccion_envio:
+            messages.error(request, 'La dirección de envío es obligatoria.')
+        elif not telefono:
+            messages.error(request, 'El teléfono es obligatorio.')
+        else:
+            pedido.direccion_envio = direccion_envio
+            pedido.telefono = telefono
+            try:
+                pedido.save()
+                messages.success(request, f'El pedido #{pedido.numero_pedido} ha sido actualizado correctamente.')
+                return redirect('pedido_seguimiento', numero_pedido=numero_pedido)
+            except ValidationError as e:
+                messages.error(request, f'Error al actualizar: {e}')
+    
+    return render(request, 'core/pedido_modificar.html', {
+        'pedido': pedido,
+        'items': pedido.items.all()
+    })
+
+
+def pedido_cancelar(request, numero_pedido):
+    if request.method != 'POST':
+        return redirect('pedido_seguimiento', numero_pedido=numero_pedido)
+    
+    pedido = get_object_or_404(Pedido, numero_pedido=numero_pedido)
+    
+    # Verificar acceso
+    tiene_acceso, es_propietario = _verificar_acceso_pedido(request, pedido)
+    
+    if not tiene_acceso:
+        messages.error(request, 'No tienes acceso a este pedido.')
+        if request.user.is_authenticated:
+            return redirect('mis_pedidos')
+        return redirect('pedido_seguimiento_ingresar')
+    
+    if not es_propietario and not request.user.is_staff:
+        messages.error(request, 'No tienes permiso para cancelar este pedido.')
+        return redirect('pedido_seguimiento', numero_pedido=numero_pedido)
+    
+    # Verificar que se puede cancelar
+    if not pedido.puede_cancelar():
+        messages.warning(request, 'Este pedido ya no puede ser cancelado.')
+        return redirect('pedido_seguimiento', numero_pedido=numero_pedido)
+    
+    pedido.estado = 'cancelado'
+    pedido.save()
+    messages.success(request, f'El pedido #{pedido.numero_pedido} ha sido cancelado correctamente.')
+    
+    return redirect('pedido_seguimiento', numero_pedido=numero_pedido)
