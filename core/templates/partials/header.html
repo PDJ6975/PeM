@@ -28,15 +28,22 @@
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="{% url 'catalogo' %}">
+          <a class="nav-link" href="{% url 'catalogo_marcas' %}">
             <i class="bi bi-grid"></i> Catálogo
           </a>
         </li>
+        {% if request.resolver_match.url_name == 'catalogo_marcas' %}
         <li class="nav-item">
-          <a class="nav-link" href="#">
+          <button class="nav-link btn btn-link p-0"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#filtrosCatalogoMarcas"
+                  aria-expanded="true"
+                  aria-controls="filtrosCatalogoMarcas">
             <i class="bi bi-search"></i> Buscar
-          </a>
+          </button>
         </li>
+        {% endif %}
       </ul>
 
       <!-- Links derecha (sesión y carrito) -->
@@ -90,3 +97,39 @@
     </div>
   </div>
 </nav>
+
+{% if mostrar_busqueda_marcas %}
+<div class="border-top bg-light">
+  <div class="container-fluid px-4 py-3 collapse{% if filtros.q or filtros.categoria %} show{% endif %}" id="catalogoSearchBar">
+    <form method="get" action="{% url 'catalogo_marcas' %}" class="row g-3 align-items-end mb-0">
+      <div class="col-md-6 col-lg-4">
+        <label for="buscarNombre" class="form-label mb-1">Nombre del producto</label>
+        <input type="text"
+               class="form-control"
+               id="buscarNombre"
+               name="q"
+               placeholder="Pelota, arnés, cama..."
+               value="{{ filtros.q|default:'' }}">
+      </div>
+
+      <div class="col-md-4 col-lg-3">
+        <label for="categoria" class="form-label mb-1">Tipo / categoría</label>
+        <select class="form-select" id="categoria" name="categoria">
+          <option value="">Todas</option>
+          {% for c in categorias %}
+            <option value="{{ c.id }}" {% if filtros.categoria == c.id|stringformat:"s" %}selected{% endif %}>
+              {{ c.nombre }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-2 col-lg-2 d-grid">
+        <button class="btn btn-primary" type="submit">
+          <i class="bi bi-funnel"></i> Aplicar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}

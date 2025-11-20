@@ -9,11 +9,9 @@ ENV/
 settings_local.py
 
 # BDD local
-
 db.sqlite3
 
 # Migraciones
-
 **/migrations/__pycache__/
 **/migrations/*.pyc
 
@@ -40,7 +38,6 @@ Thumbs.db
 *.bak
 *.zip
 
-<<<<<<< HEAD
 # Coverage reports
 htmlcov/
 .coverage
@@ -51,10 +48,3 @@ coverage.xml
 .pytest_cache/
 
 *.md
-=======
-.coverage
->>>>>>> feature/T27-pruebas-unitarias-auth
-
-=======
-.coverage
->>>>>>> ca53efe (feat: test unitarios)

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Catálogo por Marcas | PeM{% endblock %}
+
+{% block content %}
+
+{# --- BARRA DE FILTROS DESPLEGABLE, CENTRADA --- #}
+<div id="filtrosCatalogoMarcas" class="bg-light border-bottom py-3 collapse">
+  <div class="container">
+    <form method="get"
+          action="{% url 'catalogo_marcas' %}"
+          class="row g-3 justify-content-center align-items-end">
+
+      <div class="col-12 col-md-5">
+        <label for="q" class="form-label fw-semibold">Nombre del producto</label>
+        <input type="text"
+               class="form-control"
+               id="q"
+               name="q"
+               placeholder="Pelota, arnés, cama..."
+               value="{{ filtros.q }}">
+      </div>
+
+      <div class="col-8 col-md-3">
+        <label for="categoria" class="form-label fw-semibold">Tipo / categoría</label>
+        <select id="categoria" name="categoria" class="form-select">
+          <option value="">Todas</option>
+          {% for c in categorias %}
+            <option value="{{ c.id }}"
+                    {% if filtros.categoria == c.id|stringformat:"s" %}selected{% endif %}>
+              {{ c.nombre }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-4 col-md-2 d-grid">
+        <button type="submit" class="btn btn-primary mt-2 mt-md-0">
+          <i class="bi bi-funnel"></i> Aplicar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="container py-4">
+  <h1 class="fw-bold text-primary mb-4">
+    <i class="bi bi-tags"></i> Catálogo por Marcas
+  </h1>
+
+  {# --- LISTADO POR MARCAS --- #}
+  {% for marca in marcas %}
+    {% if marca.productos_filtrados %}
+      <h3 class="mt-5 mb-3 border-bottom pb-2">{{ marca.nombre }}</h3>
+
+      <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+        {% for producto in marca.productos_filtrados %}
+          <div class="col">
+            {% include "partials/product_card.html" with producto=producto %}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endfor %}
+
+  {# --- MENSAJE CUANDO NO HAY NINGÚN PRODUCTO EN NINGUNA MARCA --- #}
+  {% if total_productos == 0 %}
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-search display-4 d-block mb-3"></i>
+      <p class="fs-5">No se encontraron productos con los filtros seleccionados.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

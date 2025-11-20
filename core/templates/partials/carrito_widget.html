@@ -2,101 +2,174 @@
 
 <!-- Panel lateral del carrito -->
 <div class="offcanvas offcanvas-end" tabindex="-1" id="carritoOffcanvas" aria-labelledby="carritoOffcanvasLabel">
-    <div class="offcanvas-header border-bottom">
-        <h5 class="offcanvas-title" id="carritoOffcanvasLabel">
-            <i class="bi bi-cart3"></i> Mi Carrito
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title" id="carritoOffcanvasLabel">
+      <i class="bi bi-cart3"></i> Mi Carrito
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+
+  <div class="offcanvas-body p-0">
+    <!-- Contenido del carrito -->
+    <div id="carritoContenido">
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-cart-x display-1"></i>
+        <p class="mt-3">Tu carrito está vacío</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer del carrito con total y botones de checkout -->
+  <div class="offcanvas-footer border-top p-3">
+    <div class="d-flex justify-content-between mb-3">
+      <span class="fw-bold">Total:</span>
+      <span class="fw-bold text-primary" id="carritoTotal">0,00 €</span>
     </div>
 
-    <div class="offcanvas-body p-0">
-        <!-- Contenido del carrito -->
-        <div id="carritoContenido">
-            <div class="text-center py-5 text-muted">
-                <i class="bi bi-cart-x display-1"></i>
-                <p class="mt-3">Tu carrito está vacío</p>
-            </div>
+    <!-- Botón Stripe (flujo existente) -->
+    <button class="btn btn-primary w-100 mb-2" id="btnProcesarPedido">
+      <i class="bi bi-credit-card"></i> Pagar con tarjeta (Stripe)
+    </button>
+
+    <!-- Botón Contrareembolso (nuevo) -->
+    <button class="btn btn-outline-dark w-100" id="btnContrareembolso">
+      <i class="bi bi-cash-coin"></i> Pagar contrareembolso
+    </button>
+  </div>
+  <!-- Bloque dirección para COD -->
+    <div id="cod-address" style="margin-top:12px; padding:12px; border:1px solid #e5e7eb; border-radius:10px; display:none;">
+    <div style="font-weight:600; margin-bottom:8px;">Dirección de envío (requerida para contrareembolso)</div>
+    <div style="display:grid; gap:8px;">
+        <input id="cod_dir" type="text" placeholder="Calle y número" required>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+        <input id="cod_ciudad" type="text" placeholder="Ciudad" required>
+        <input id="cod_cp" type="text" placeholder="Código postal" required>
         </div>
+        <input id="cod_tel" type="tel" placeholder="Teléfono (opcional)">
     </div>
-
-    <!-- Footer del carrito con total y botón de checkout -->
-
-    <div class="offcanvas-footer border-top p-3">
-        <div class="d-flex justify-content-between mb-3">
-            <span class="fw-bold">Total:</span>
-            <span class="fw-bold text-primary" id="carritoTotal">0,00 €</span>
-        </div>
-        <button class="btn btn-primary w-100" id="btnProcesarPedido">
-            <i class="bi bi-credit-card"></i> Procesar Pedido
-        </button>
     </div>
-
-        <!-- Stripe.js -->
-    <script src="https://js.stripe.com/v3/"></script>
-    <script>
+  <!-- Stripe.js -->
+  <script src="https://js.stripe.com/v3/"></script>
+  <script>
     const STRIPE_PK = "{{ STRIPE_PUBLISHABLE_KEY }}";
 
     function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(";").shift();
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(";").shift();
     }
     const csrftoken = getCookie("csrftoken");
 
     const btnProcesar = document.getElementById("btnProcesarPedido");
+    const btnCOD = document.getElementById("btnContrareembolso");
+    const boxCOD = document.getElementById("cod-address");
 
+
+    // --- Flujo Stripe (igual que antes) ---
     btnProcesar.addEventListener("click", async () => {
+      btnProcesar.disabled = true;
+      btnCOD.disabled = true;
 
-        btnProcesar.disabled = true;
-        const originalHtml = btnProcesar.innerHTML;
-        btnProcesar.innerHTML =
+      const originalHtml = btnProcesar.innerHTML;
+      btnProcesar.innerHTML =
         '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Redirigiendo a pago...';
 
-        try {
+      try {
         const resp = await fetch("{% url 'create_checkout_session' %}", {
-            method: "POST",
-            credentials: "same-origin",
-            headers: {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
             "Content-Type": "application/json",
             "X-CSRFToken": csrftoken
-            }
+          }
         });
 
         if (!resp.ok) {
-            const errText = await resp.text();
-            throw new Error(errText || "No se pudo crear la sesión de pago.");
+          const errText = await resp.text();
+          throw new Error(errText || "No se pudo crear la sesión de pago.");
         }
 
         const data = await resp.json();
-        console.log("Respuesta create_checkout_session:", data);
-
         if (data.url) {
-            window.location.href = data.url;
-            return;
+          window.location.href = data.url;
+          return;
         }
 
         const sessionId = data.id || data.sessionId;
-        if (!sessionId) {
-            throw new Error("Respuesta sin 'url' ni session ID ('id'/'sessionId').");
-        }
-        if (!STRIPE_PK) {
-            throw new Error("Falta Stripe publishable key para usar Stripe.js.");
-        }
+        if (!sessionId) throw new Error("Respuesta sin 'url' ni session ID.");
+
+        if (!STRIPE_PK) throw new Error("Falta Stripe publishable key.");
+
         const stripe = Stripe(STRIPE_PK);
         const result = await stripe.redirectToCheckout({ sessionId });
         if (result && result.error) {
-            const msg = result.error.message || result.error.description || JSON.stringify(result.error) || "Error desconocido de Stripe.js";
-            throw new Error(msg);
+          throw new Error(result.error.message || "Error de Stripe.js");
         }
-
-        } catch (e) {
+      } catch (e) {
         console.error("Fallo iniciando pago:", e);
-        const msg = e?.message || e?.error?.message || (typeof e === "string" ? e : JSON.stringify(e)) || "Ocurrió un error al iniciar el pago. Inténtalo de nuevo.";
-        alert("Error: " + msg);
+        alert("Error: " + (e?.message || "Ocurrió un error. Inténtalo de nuevo."));
         btnProcesar.disabled = false;
+        btnCOD.disabled = false;
         btnProcesar.innerHTML = originalHtml;
-        }
+      }
     });
-    </script>
 
+    // --- Flujo Contrareembolso (POST tradicional que navega a HTML) ---
+    btnCOD.addEventListener("click", async () => {
+    if (boxCOD.style.display === "none") {
+        boxCOD.style.display = "block";
+        boxCOD.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+    }
+
+    const dir = document.getElementById("cod_dir").value.trim();
+    const ciudad = document.getElementById("cod_ciudad").value.trim();
+    const cp = document.getElementById("cod_cp").value.trim();
+    const tel = document.getElementById("cod_tel").value.trim();
+
+    if (!dir || !ciudad || !cp) {
+        alert("Por favor, completa dirección, ciudad y código postal.");
+        return;
+    }
+
+    const originalHtmlCOD = btnCOD.innerHTML;
+    btnCOD.disabled = true;
+    btnProcesar.disabled = true;
+    btnCOD.innerHTML =
+        '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Creando pedido...';
+
+    try {
+        const resp = await fetch("{% url 'checkout_cod' %}", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrftoken
+        },
+        body: JSON.stringify({
+            direccion: dir,
+            ciudad: ciudad,
+            codigo_postal: cp,
+            telefono: tel
+        })
+        });
+
+        if (!resp.ok) {
+        const errText = await resp.text();
+        throw new Error(errText || "No se pudo crear el pedido contrareembolso.");
+        }
+        const html = await resp.text();
+        document.open();
+        document.write(html);
+        document.close();
+
+    } catch (e) {
+        console.error("Fallo contrareembolso:", e);
+        alert("Error: " + (e?.message || "No se pudo crear el pedido contrareembolso."));
+        btnCOD.disabled = false;
+        btnProcesar.disabled = false;
+        btnCOD.innerHTML = originalHtmlCOD;
+    }
+    });
+  </script>
 </div>

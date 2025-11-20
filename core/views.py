@@ -12,6 +12,8 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth import login as django_login
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q, Prefetch
+from django.utils import timezone
 
 from core.services.catalogo import buscar_productos, obtener_productos_destacados
 from core.models import Producto
@@ -22,20 +24,23 @@ import logging
 # Configurar logger para este módulo
 logger = logging.getLogger(__name__)
 
+from decimal import Decimal
+
+import stripe
+
+from django.conf import settings
+from django.db import IntegrityError, transaction
+from django.http import HttpResponseBadRequest
+from django.utils.crypto import get_random_string
+
 from core.models.carrito import Carrito
 from core.models.item_carrito import ItemCarrito
 from core.models.pedido import Pedido
 from core.models.item_pedido import ItemPedido
 from core.models.cliente import Cliente
-from core.models.producto import Producto
-
 from core.services import carrito as carrito_service
-from core.services.pedido import PedidoService
-from django.conf import settings
-from django.utils import timezone
 from core.services.carrito import vaciar_carrito
-from django.utils.crypto import get_random_string
-from django.db import IntegrityError, transaction
+
 
 
 
@@ -59,6 +64,56 @@ def sobre_nosotros(request):
 
 def contacto(request):
     return render(request, 'core/contacto.html')
+
+def catalogo_marcas(request):
+    q = (request.GET.get("q") or "").strip()
+    categoria_id = request.GET.get("categoria") or ""
+
+    # Base: productos disponibles
+    productos_qs = (
+        Producto.objects
+        .select_related("marca", "categoria")
+        .filter(esta_disponible=True)
+    )
+
+    # Filtro por nombre / descripción / marca
+    if q:
+        productos_qs = productos_qs.filter(
+            Q(nombre__icontains=q) |
+            Q(descripcion__icontains=q) |
+            Q(marca__nombre__icontains=q)
+        )
+
+    # Filtro por categoría (tipo)
+    if categoria_id:
+        productos_qs = productos_qs.filter(categoria_id=categoria_id)
+
+    productos_qs = productos_qs.order_by("marca__nombre", "nombre")
+
+    # Prefetch solo de los productos filtrados, agrupados por marca
+    marcas = (
+        Marca.objects
+        .filter(productos__in=productos_qs)
+        .distinct()
+        .order_by("nombre")
+        .prefetch_related(
+            Prefetch("productos", queryset=productos_qs, to_attr="productos_filtrados")
+        )
+    )
+
+    categorias = Categoria.objects.order_by("nombre")
+    total_productos = productos_qs.count()
+
+    contexto = {
+        "marcas": marcas,
+        "categorias": categorias,
+        "total_productos": total_productos,
+        "filtros": {
+            "q": q,
+            "categoria": categoria_id,
+        },
+    }
+    return render(request, "core/catalogo_marcas.html", contexto)
 
 # ============================================
 # API REST para el Carrito
@@ -472,14 +527,33 @@ class LoginView(View):
             return JsonResponse({"error": "Error interno del servidor", "detalle": str(e)}, status=500)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class SeguimientoPedidoView(View):
+class SeguimientoPorTokenView(View):
     """
-    Vista temporal para seguimiento de pedidos.
-    Se reemplazará por una versión completa en una futura rama.
+    Vista accesible desde el enlace enviado al correo.
+    Muestra el estado del pedido usando su tracking_token.
     """
+    template_name = "core/seguimiento_pedido.html"
+
     def get(self, request, tracking_token):
-        return HttpResponse(f"Seguimiento temporal del pedido: {tracking_token}")
+        pedido = get_object_or_404(Pedido, tracking_token=tracking_token)
+
+        items = [
+            {
+                "producto": item.producto.nombre,
+                "cantidad": item.cantidad,
+                "precio_unitario": item.precio_unitario,
+                "subtotal": item.precio_unitario * item.cantidad
+            }
+            for item in pedido.items.all()
+        ]
+
+        return render(request, self.template_name, {
+            "pedido": pedido,
+            "items": items,
+            "success": True,
+            "from_token": True
+        })
+
 
 class CategoriasView(TemplateView):
     template_name = "core/categorias.html"
@@ -554,28 +628,7 @@ def api_productos(request):
         "results": items
     }, status=200)
 
-import stripe
-from core.models import Pedido
 
-stripe.api_key = settings.STRIPE_SECRET_KEY
-        
-import stripe
-from django.conf import settings
-from django.http import JsonResponse, HttpResponseBadRequest
-from django.shortcuts import redirect
-stripe.api_key = settings.STRIPE_SECRET_KEY
-
-# views.py
-import os
-import stripe
-from decimal import Decimal
-from django.conf import settings
-from django.http import JsonResponse, HttpResponseBadRequest
-from django.urls import reverse
-from django.shortcuts import get_object_or_404
-from django.db.models import Prefetch
-
-from .models import Carrito, ItemCarrito  # ajusta import según tu estructura
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -651,12 +704,12 @@ def create_checkout_session(request):
     line_items = _build_line_items(carrito_id)
     logger.debug(f"[Stripe Checkout] Line items construidos: {len(line_items)} items")
 
-    success_url = settings.STRIPE_SUCCESS_URL  # p.ej: ".../checkout/success?session_id={CHECKOUT_SESSION_ID}"
+    success_url = settings.STRIPE_SUCCESS_URL
     cancel_url = settings.STRIPE_CANCEL_URL
 
     # --- Metadata mínima para el webhook ---
     metadata = {
-        "cart_id": str(carrito_id),  # OJO: usamos el entero directamente, no .id
+        "cart_id": str(carrito_id),
     }
     if request.user.is_authenticated:
         metadata["user_id"] = str(request.user.id)
@@ -666,7 +719,7 @@ def create_checkout_session(request):
         "line_items": line_items,
         "success_url": success_url,
         "cancel_url": cancel_url,
-        "client_reference_id": str(carrito_id),   # idem: ID directo
+        "client_reference_id": str(carrito_id),
         "metadata": metadata,
         "allow_promotion_codes": True,
         "phone_number_collection": {"enabled": True},
@@ -694,16 +747,6 @@ def create_checkout_session(request):
 
     return JsonResponse({"id": session.id, "url": session.url})
 
-def _split_nombre_apellidos(nombre_completo: str):
-    """‘John A. Doe’ -> ('John A.', 'Doe') aprox."""
-    if not nombre_completo:
-        return ("Invitado", "SinDatos")
-    partes = nombre_completo.strip().split()
-    if len(partes) == 1:
-        return (partes[0], "SinDatos")
-    return (" ".join(partes[:-1]), partes[-1])
-
-
 def _fmt_direccion(customer_details):
     """Devuelve una cadena con la dirección postal recibida desde Stripe."""
     if not customer_details or not customer_details.get("address"):
@@ -721,7 +764,7 @@ def _fmt_direccion(customer_details):
 
 def _precio_actual(producto: Producto) -> Decimal:
     """Refleja oferta si aplica (según tu modelo Producto)."""
-    return producto.precio_actual()  # tu método del modelo
+    return producto.precio_actual() 
 
 
 def _buscar_o_crear_cliente_desde_stripe(request, customer_details):
@@ -802,31 +845,45 @@ def _buscar_o_crear_cliente_desde_stripe(request, customer_details):
             cli.save(update_fields=["telefono", "direccion", "ciudad", "codigo_postal"])
             return cli
     except IntegrityError:
-        # carrera o email ya creado en otra ruta: recupera y devuelve
         return Cliente.objects.get(email__iexact=email)
 
 
-def _crear_pedido_desde_carrito(*, cliente: Cliente, carrito: Carrito, stripe_session, payment_intent):
+def _crear_pedido_desde_carrito(*,
+                                cliente: Cliente,
+                                carrito: Carrito,
+                                stripe_session=None,
+                                payment_intent=None,
+                                direccion_envio_override: str | None = None,
+                                telefono_override: str | None = None):
     """Crea Pedido + sus líneas a partir del carrito."""
-    # Totales básicos: de momento sin impuestos/envío/desc.
     subtotal = Decimal(0)
     items = ItemCarrito.objects.select_related("producto").filter(carrito=carrito)
 
+    direccion_envio = (
+        direccion_envio_override
+        or _fmt_direccion(getattr(stripe_session, "customer_details", None))
+        or "Dirección no facilitada"
+    )
+    telefono = (
+        (telefono_override or "").strip()
+        or ((getattr(stripe_session, "customer_details", {}) or {}).get("phone") or "").strip()
+        or "600000000"
+    )
+
     pedido = Pedido.objects.create(
         cliente=cliente,
-        estado="confirmado",  # ya está pagado
-        subtotal=Decimal("0.00"),  # provisional; se recalcula en save()
+        estado="confirmado",
+        subtotal=Decimal("0.00"),
         impuestos=Decimal("0.00"),
         coste_entrega=Decimal("0.00"),
         descuento=Decimal("0.00"),
-        total=Decimal("0.00"),     # el save() recalculará con calcular_total()
-        direccion_envio=_fmt_direccion(getattr(stripe_session, "customer_details", None)),
-        telefono=(getattr(stripe_session, "customer_details", {}) or {}).get("phone") or "600000000",
-        stripe_session_id=stripe_session.id,
-        stripe_payment_intent_id=getattr(payment_intent, "id", None),
+        total=Decimal("0.00"),
+        direccion_envio=direccion_envio,
+        telefono=telefono,
+        stripe_session_id=getattr(stripe_session, "id", None),                
+        stripe_payment_intent_id=getattr(payment_intent, "id", None),        
     )
 
-    # Insertar líneas y actualizar stock
     for it in items:
         prod = it.producto
         precio_u = _precio_actual(prod)
@@ -836,19 +893,24 @@ def _crear_pedido_desde_carrito(*, cliente: Cliente, carrito: Carrito, stripe_se
             cantidad=it.cantidad,
             precio_unitario=precio_u,
         )
-        # Descontar stock básico
         if prod.stock is not None:
             prod.stock = max(0, prod.stock - it.cantidad)
             prod.save()
 
         subtotal += (precio_u * it.cantidad)
 
-    # Actualizar importes y guardar (tu modelo recalcula total en save) :contentReference[oaicite:3]{index=3}
     pedido.subtotal = subtotal.quantize(Decimal("0.01"))
     pedido.save()
 
-    return pedido
+    try:
+        pedido.enviar_correo_confirmacion()
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"No se pudo enviar email de confirmación: {e}")
+        # No interrumpimos el proceso si falla el email
 
+    return pedido
 
 def _obtener_carrito_desde_session_o_django(request, stripe_session):
     """Preferimos metadata.cart_id; si no, la sesión de Django."""
@@ -868,7 +930,6 @@ def _obtener_carrito_desde_session_o_django(request, stripe_session):
 
 
 def _vaciar_y_cerrar_carrito(request, carrito: Carrito):
-    # Usa tu servicio
     try:
         vaciar_carrito(carrito.id)
     except Exception:
@@ -916,13 +977,20 @@ def checkout_success(request):
     # 5) Vaciar carrito
     _vaciar_y_cerrar_carrito(request, carrito)
 
+    if not request.user.is_authenticated:
+        request.session['pedido_acceso_temporal'] = {
+            'numero_pedido': pedido.numero_pedido,
+            'tracking_token': str(pedido.tracking_token),
+            'timestamp': timezone.now().isoformat()
+        }
+        logger.info(f"[Checkout Success] Acceso temporal guardado para pedido {pedido.numero_pedido}")
+
     # 6) Mostrar pantalla de éxito / devolver JSON
     ctx = {
         "pedido": pedido,
-        "tracking": pedido.tracking_token,  # para vista de seguimiento simple que ya tienes
+        "tracking": pedido.tracking_token, 
         "session_id": session.id,
     }
-    # Puedes renderizar un template bonito:
     return render(request, "core/checkout_success.html", ctx)
 
 def checkout_cancelled(request):
@@ -934,6 +1002,74 @@ def tu_vista_del_carrito(request):
     }
     return render(request, "carrito_widget.html", ctx)
 
+from django.views.decorators.http import require_POST
+@require_POST
+def checkout_cod(request):
+    if not request.user.is_authenticated:
+        return HttpResponseBadRequest("Inicia sesión para pagar contra reembolso.")
+
+    # --- Leer JSON con dirección (enviado por el widget) ---
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        data = {}
+
+    direccion = (data.get("direccion") or "").strip()
+    ciudad    = (data.get("ciudad") or "").strip()
+    cp        = (data.get("codigo_postal") or "").strip()
+    telefono  = (data.get("telefono") or "").strip()
+
+    # Validación mínima (ajusta a tu gusto)
+    if not direccion or not ciudad or not cp:
+        return HttpResponseBadRequest("Falta dirección, ciudad o código postal.")
+
+    # --- Recuperar carrito ---
+    carrito_id = None
+
+    if request.user.is_authenticated:
+        # Usuario autenticado: obtener carrito desde relación
+        try:
+            carrito_id = request.user.carrito.id
+            logger.debug(f"[Stripe Checkout] Carrito de usuario autenticado: {carrito_id}")
+        except AttributeError:
+            logger.warning("[Stripe Checkout] Usuario autenticado sin carrito")
+            return HttpResponseBadRequest("No tienes un carrito")
+    else:
+        # Usuario anónimo: obtener carrito de la sesión
+        carrito_id = request.session.get("carrito_id")
+        logger.debug(f"[Stripe Checkout] Carrito ID en sesión (anónimo): {carrito_id}")
+
+    if not carrito_id:
+        logger.warning("[Stripe Checkout] No hay carrito disponible")
+        return HttpResponseBadRequest("No hay carrito en la sesión")
+
+    try:
+        carrito = Carrito.objects.get(pk=carrito_id)
+    except Carrito.DoesNotExist:
+        return HttpResponseBadRequest("Carrito no encontrado.")
+
+    direccion_envio_str = ", ".join([x for x in [direccion, f"{cp} {ciudad}".strip()] if x])
+
+    with transaction.atomic():
+        pedido = _crear_pedido_desde_carrito(
+            cliente=request.user,
+            carrito=carrito,
+            stripe_session=None,         
+            payment_intent=None,
+            direccion_envio_override=direccion_envio_str,   
+            telefono_override=telefono or "600000000",       
+        )
+
+    _vaciar_y_cerrar_carrito(request, carrito)
+
+    # Devolvemos HTML
+    ctx = {
+        "pedido": pedido,
+        "tracking": pedido.tracking_token,
+        "pago_cod": True,
+    }
+    return render(request, "core/checkout_success.html", ctx)
+    
 def mis_pedidos(request):
     # Si no está logeado, pide número de pedido
     if not request.user.is_authenticated:

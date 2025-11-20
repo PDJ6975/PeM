@@ -155,3 +155,15 @@ STRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET')
 
 STRIPE_SUCCESS_URL = "http://localhost:8000/checkout/success?session_id={CHECKOUT_SESSION_ID}"
 STRIPE_CANCEL_URL  = "http://localhost:8000/checkout/cancelled"
+
+# Email configuration (SendGrid)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'apikey'
+EMAIL_HOST_PASSWORD = env.str('SENDGRID_API_KEY')
+DEFAULT_FROM_EMAIL = env.str('EMAIL_FROM', default='noreply@pem.com')
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+EMAIL_FROM_NAME = 'PeM Store Notifications'
+SITE_URL = env.str('SITE_URL', default='http://localhost:8000')

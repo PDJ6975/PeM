@@ -2,9 +2,9 @@
 
 <footer class="bg-dark text-white mt-5 py-4">
     <div class="container">
-        <div class="row">
+        <div class="row justify-content-center">
             <!-- Información de la empresa -->
-            <div class="col-md-4 mb-3">
+            <div class="col-md-3 mb-3">
                 <h5 class="fw-bold">
                     <i class="bi bi-shop"></i> PeM
                 </h5>
@@ -14,7 +14,7 @@
             </div>
 
             <!-- Enlaces rápidos -->
-            <div class="col-md-4 mb-3">
+            <div class="col-md-2 mb-3">
                 <h6 class="fw-bold">Enlaces Rápidos</h6>
                 <ul class="list-unstyled">
                     <li><a href="{% url 'sobre_nosotros' %}" class="text-white-50 text-decoration-none">Sobre Nosotros</a></li>
@@ -23,7 +23,7 @@
             </div>
 
             <!-- Contacto -->
-            <div class="col-md-4 mb-3">
+            <div class="col-md-3 mb-3">
                 <h6 class="fw-bold">Contacto</h6>
                 <ul class="list-unstyled text-white-50 small">
                     <li><i class="bi bi-envelope"></i> info@pem.com</li>
@@ -31,13 +31,23 @@
                     <li><i class="bi bi-geo-alt"></i> Sevilla, España</li>
                 </ul>
             </div>
+
+            <!-- Logo Universidad -->
+            <div class="col-md-3 mb-3 d-flex align-items-center justify-content-center">
+                <div class="footer-logo-container">
+                    <img src="{% static 'core/img/logous.png' %}" 
+                         alt="Universidad de Sevilla Logo" 
+                         class="footer-logo"
+                         style="max-width: 100px; height: auto; filter: brightness(0) invert(1);">
+                </div>
+            </div>
         </div>
 
-        <hr class="bg-white">
+        <hr class="bg-white opacity-25 my-3">
 
         <div class="text-center small text-white-50">
             <p class="mb-0">
-                &copy; 5 PeM - Juguetes para Mascotas. Todos los derechos reservados.
+                &copy; 2025 PeM - Juguetes para Mascotas. Todos los derechos reservados.
             </p>
         </div>
     </div>

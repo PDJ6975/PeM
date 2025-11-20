@@ -5,6 +5,8 @@ from decimal import Decimal
 import uuid
 from django.core.mail import send_mail
 from django.conf import settings
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 
 
 class Pedido(models.Model):
@@ -235,21 +237,41 @@ class Pedido(models.Model):
         base_url = getattr(settings, "SITE_URL", "http://localhost:8000")
         return f"{base_url}/seguimiento/{self.tracking_token}/"
 
-    def enviar_correo_tracking(self):
+    def enviar_correo_confirmacion(self):
         """
-        Envía un correo con la información del pedido y el enlace de seguimiento.
+        Envía un correo de confirmación al cliente con número de pedido y tracking token.
         """
-        asunto = f"Confirmación de tu pedido {self.numero_pedido}"
-        mensaje = (
-            f"¡Gracias por tu compra!\n\n"
-            f"Tu pedido ha sido recibido correctamente.\n"
-            f"Puedes consultar su estado en cualquier momento en el siguiente enlace:\n\n"
-            f"{self.get_tracking_url()}\n\n"
-            f"Resumen:\n"
-            f"Estado: {self.estado}\n"
-            f"Total: {self.total} €\n\n"
-            f"PeM - Juguetes para Mascotas"
-        )
-        remitente = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pem.com")
-        destinatario = [self.cliente.email]
-        send_mail(asunto, mensaje, remitente, destinatario)
+        try:
+            # Contexto para la plantilla
+            context = {
+                'pedido': self,
+                'cliente': self.cliente,
+                'items': self.items.all(),
+                'numero_pedido': self.numero_pedido,
+                'tracking_token': self.tracking_token,
+                'tracking_url': f"{settings.SITE_URL}/pedidos/seguimiento/{self.numero_pedido}/",
+                'site_url': settings.SITE_URL,
+            }
+            
+            # Renderizar email HTML
+            html_message = render_to_string('core/confirmacion_pedido_email.html', context)
+            plain_message = strip_tags(html_message)
+
+            from_email = f"{getattr(settings, 'EMAIL_FROM_NAME', 'PeM Store Notifications')} <{settings.DEFAULT_FROM_EMAIL}>"
+            
+            # Enviar email
+            send_mail(
+                subject=f'Confirmación de Pedido #{self.numero_pedido} - PeM',
+                message=plain_message,
+                from_email=from_email,
+                recipient_list=[self.cliente.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            
+            return True
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error enviando email de confirmación para pedido {self.numero_pedido}: {e}")
+            return False
