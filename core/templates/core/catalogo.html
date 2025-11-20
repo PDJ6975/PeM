@@ -129,40 +129,26 @@
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       const modalEl = document.getElementById('destacadosModal');
-      if (!modalEl) return;
-
-      const destacadosModal = new bootstrap.Modal(modalEl);
-
-      const params = new URLSearchParams(window.location.search);
-      const page = params.get('page') || '1';
-
-      // Claves de filtros que usas en el formulario
-      const filtrosKeys = ['q', 'marca', 'categoria', 'genero', 'ordenar'];
-
-      // ¿Hay algún filtro activo?
-      const tieneFiltrosActivos = filtrosKeys.some(function (clave) {
-        const valor = params.get(clave);
-        return valor !== null && valor !== '';
-      });
-
-      // Permite desactivar con ?sin_destacados=1 si quisieras
-      const noMostrarParam = params.has('sin_destacados');
-
-      if (page === '1' && !tieneFiltrosActivos && !noMostrarParam) {
-        destacadosModal.show();
-      }
-
-      // 🔥 NUEVO: Ocultar botón flotante cuando el carrito está abierto
       const btnFlotante = document.getElementById('btnDestacadosFlotante');
       const carritoOffcanvas = document.getElementById('carritoOffcanvas');
 
-      if (btnFlotante && carritoOffcanvas) {
-        // Evento cuando se abre el carrito
+      if (!modalEl || !btnFlotante) return;
+
+      // Ocultar/mostrar botón cuando se abre/cierra el modal de destacados
+      modalEl.addEventListener('show.bs.modal', function () {
+        btnFlotante.classList.add('oculto');
+      });
+
+      modalEl.addEventListener('hide.bs.modal', function () {
+        btnFlotante.classList.remove('oculto');
+      });
+
+      // Ocultar/mostrar botón cuando se abre/cierra el carrito offcanvas
+      if (carritoOffcanvas) {
         carritoOffcanvas.addEventListener('show.bs.offcanvas', function () {
           btnFlotante.classList.add('oculto');
         });
 
-        // Evento cuando se cierra el carrito
         carritoOffcanvas.addEventListener('hide.bs.offcanvas', function () {
           btnFlotante.classList.remove('oculto');
         });
@@ -171,4 +157,5 @@
   </script>
   {% endif %}
 {% endblock %}
+
 
