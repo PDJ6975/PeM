@@ -32,6 +32,15 @@
             <i class="bi bi-grid"></i> Catálogo
           </a>
         </li>
+        
+        {% if user.is_authenticated and user.is_staff %}
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="{% url 'admin:index' %}" target="_blank">
+            <i class="bi bi-shield-lock-fill"></i> Panel Admin
+          </a>
+        </li>
+        {% endif %}
+        
         {% if request.resolver_match.url_name == 'catalogo_marcas' %}
         <li class="nav-item">
           <button class="nav-link btn btn-link p-0"
