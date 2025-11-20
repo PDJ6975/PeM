@@ -768,85 +768,67 @@ def _precio_actual(producto: Producto) -> Decimal:
 
 
 def _buscar_o_crear_cliente_desde_stripe(request, customer_details):
-    if not customer_details:
-        return request.user if request.user.is_authenticated else None
+    """
+    Si el usuario está autenticado, seguimos usando su cuenta (y opcionalmente
+    actualizamos campos con lo que devuelva Stripe, como hasta ahora).
 
-    raw_email = (customer_details.email or "").strip()
-    if not raw_email:
-        return request.user if request.user.is_authenticated else None
-
-    # 1) Normaliza y baja a minúsculas (dominio y local-part)
-    email = raw_email.lower()
-
-    # Nombre y teléfonos desde Stripe
-    nombre_completo = (customer_details.name or "").strip()
-    partes = nombre_completo.split()
-    nombre = partes[0] if partes else ""
-    apellidos = " ".join(partes[1:]) if len(partes) > 1 else ""
-    telefono = (customer_details.phone or "").strip()
-
-    address = getattr(customer_details, "address", None) or {}
-    direccion = (address.get("line1") or "").strip()
-    ciudad = (address.get("city") or "").strip()
-    cp = (address.get("postal_code") or "").strip()
-
-    # 2) Si el user ya está logueado, úsalo y actualiza lo que falte
+    Si NO está autenticado, NO creamos cuentas nuevas con datos de Stripe.
+    En su lugar, usamos una cuenta anónima única para todos los pedidos invitados.
+    El email por defecto es settings.ANON_ORDER_EMAIL o 'anon@orders.local'.
+    """
+    # 1) Usuario autenticado: conservar el comportamiento actual (actualiza datos si vienen de Stripe)
     if request.user.is_authenticated:
-        cli = request.user
-        cambios = False
-        for campo, valor in [
-            ("email", email),
-            ("nombre", nombre),
-            ("apellidos", apellidos),
-            ("telefono", telefono),
-            ("direccion", direccion),
-            ("ciudad", ciudad),
-            ("codigo_postal", cp),
-        ]:
-            if valor and getattr(cli, campo) != valor:
-                setattr(cli, campo, valor); cambios = True
-        if cambios:
-            cli.save()
-        return cli
+        if customer_details:
+            nombre_completo = (customer_details.name or "").strip()
+            partes = nombre_completo.split()
+            nombre = partes[0] if partes else ""
+            apellidos = " ".join(partes[1:]) if len(partes) > 1 else ""
+            telefono = (customer_details.phone or "").strip()
 
-    # 3) Intenta encontrar por email (case-insensitive)
-    cli = Cliente.objects.filter(email__iexact=email).first()
-    if cli:
-        cambios = False
-        for campo, valor in [
-            ("nombre", nombre),
-            ("apellidos", apellidos),
-            ("telefono", telefono),
-            ("direccion", direccion),
-            ("ciudad", ciudad),
-            ("codigo_postal", cp),
-        ]:
-            if valor and not getattr(cli, campo):
-                setattr(cli, campo, valor); cambios = True
-        if cambios:
-            cli.save()
-        return cli
+            address = getattr(customer_details, "address", None) or {}
+            direccion = (address.get("line1") or "").strip()
+            ciudad = (address.get("city") or "").strip()
+            cp = (address.get("postal_code") or "").strip()
 
-    # 4) Crear invitado si no existe
-    random_password = get_random_string(12)
-    try:
-        with transaction.atomic():
-            cli = Cliente.objects.create_user(
-                email=email,
-                password=random_password,
-                nombre=nombre,
-                apellidos=apellidos,
-            )
-            # guarda extras opcionales
-            cli.telefono = telefono or ""
-            cli.direccion = direccion or ""
-            cli.ciudad = ciudad or ""
-            cli.codigo_postal = cp or ""
-            cli.save(update_fields=["telefono", "direccion", "ciudad", "codigo_postal"])
+            cli = request.user
+            cambios = False
+            for campo, valor in [
+                ("nombre", nombre),
+                ("apellidos", apellidos),
+                ("telefono", telefono),
+                ("direccion", direccion),
+                ("ciudad", ciudad),
+                ("codigo_postal", cp),
+            ]:
+                if valor and getattr(cli, campo) != valor:
+                    setattr(cli, campo, valor); cambios = True
+            if cambios:
+                cli.save()
             return cli
-    except IntegrityError:
-        return Cliente.objects.get(email__iexact=email)
+        return request.user
 
+    # 2) Usuario NO autenticado: usar/crear cuenta anónima fija
+    anon_email = getattr(settings, "ANON_ORDER_EMAIL", "anon@orders.local")
+
+    cli = Cliente.objects.filter(email__iexact=anon_email).first()
+    if cli:
+        return cli
+
+    # Crear la cuenta anónima si no existe
+    with transaction.atomic():
+        cli = Cliente.objects.create_user(
+            email=anon_email,
+            password=get_random_string(32), 
+            nombre="Anónimo",
+            apellidos="Pedido",
+        )
+        # Opcional: desactivar login para esta cuenta
+        try:
+            cli.is_active = False
+            cli.save(update_fields=["is_active"])
+        except Exception:
+            pass
+        return cli
 
 def _crear_pedido_desde_carrito(*,
                                 cliente: Cliente,
