@@ -133,25 +133,6 @@
 
       const destacadosModal = new bootstrap.Modal(modalEl);
 
-      const params = new URLSearchParams(window.location.search);
-      const page = params.get('page') || '1';
-
-      // Claves de filtros que usas en el formulario
-      const filtrosKeys = ['q', 'marca', 'categoria', 'genero', 'ordenar'];
-
-      // ¿Hay algún filtro activo?
-      const tieneFiltrosActivos = filtrosKeys.some(function (clave) {
-        const valor = params.get(clave);
-        return valor !== null && valor !== '';
-      });
-
-      // Permite desactivar con ?sin_destacados=1 si quisieras
-      const noMostrarParam = params.has('sin_destacados');
-
-      if (page === '1' && !tieneFiltrosActivos && !noMostrarParam) {
-        destacadosModal.show();
-      }
-
       // Botón flotante "Destacados"
       const btnFlotante = document.getElementById('btnDestacadosFlotante');
       if (btnFlotante) {
