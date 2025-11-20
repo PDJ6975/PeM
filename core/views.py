@@ -12,6 +12,7 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth import login as django_login
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q, Prefetch
 
 from core.services.catalogo import buscar_productos, obtener_productos_destacados
 from core.models import Producto
@@ -62,6 +63,56 @@ def sobre_nosotros(request):
 
 def contacto(request):
     return render(request, 'core/contacto.html')
+
+def catalogo_marcas(request):
+    q = (request.GET.get("q") or "").strip()
+    categoria_id = request.GET.get("categoria") or ""
+
+    # Base: productos disponibles
+    productos_qs = (
+        Producto.objects
+        .select_related("marca", "categoria")
+        .filter(esta_disponible=True)
+    )
+
+    # Filtro por nombre / descripción / marca
+    if q:
+        productos_qs = productos_qs.filter(
+            Q(nombre__icontains=q) |
+            Q(descripcion__icontains=q) |
+            Q(marca__nombre__icontains=q)
+        )
+
+    # Filtro por categoría (tipo)
+    if categoria_id:
+        productos_qs = productos_qs.filter(categoria_id=categoria_id)
+
+    productos_qs = productos_qs.order_by("marca__nombre", "nombre")
+
+    # Prefetch solo de los productos filtrados, agrupados por marca
+    marcas = (
+        Marca.objects
+        .filter(productos__in=productos_qs)
+        .distinct()
+        .order_by("nombre")
+        .prefetch_related(
+            Prefetch("productos", queryset=productos_qs, to_attr="productos_filtrados")
+        )
+    )
+
+    categorias = Categoria.objects.order_by("nombre")
+    total_productos = productos_qs.count()
+
+    contexto = {
+        "marcas": marcas,
+        "categorias": categorias,
+        "total_productos": total_productos,
+        "filtros": {
+            "q": q,
+            "categoria": categoria_id,
+        },
+    }
+    return render(request, "core/catalogo_marcas.html", contexto)
 
 # ============================================
 # API REST para el Carrito

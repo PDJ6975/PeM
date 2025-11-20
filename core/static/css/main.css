@@ -256,3 +256,48 @@ footer a:hover {
         padding: 0.5rem 0;
     }
 }
+
+/* --- Unificar altura de tarjetas --- */
+
+.card-producto {
+    display: flex;
+    flex-direction: column;
+}
+
+.card-producto-img {
+    height: 200px;      
+    width: 100%;
+    object-fit: cover;  
+}
+
+/* Para evitar que algunos títulos hagan crecer la tarjeta */
+.card-producto-title {
+    min-height: 2.2rem; /* aprox 2 líneas */
+}
+
+/* Botón flotante "Destacados" */
+.destacado-floating-btn {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 1055; /* por encima del contenido normal */
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding-inline: 1.4rem;
+    font-weight: 600;
+    animation: destacadoPulse 2.5s infinite;
+}
+
+@keyframes destacadoPulse {
+    0%, 100% {
+        transform: translateY(0);
+        box-shadow: 0 0.5rem 1rem rgba(13, 110, 253, 0.35);
+    }
+    50% {
+        transform: translateY(-4px);
+        box-shadow: 0 0.8rem 1.4rem rgba(13, 110, 253, 0.55);
+    }
+}
+
+

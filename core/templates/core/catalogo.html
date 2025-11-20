@@ -5,59 +5,50 @@
 
 {% block content %}
 <div class="container py-5">
-    {# --- SECCIÓN DESTACADOS --- #}
+
+  {# ==== MODAL DE DESTACADOS ==== #}
   {% if destacados %}
-    <section class="mb-5">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="h4 fw-bold mb-0"><i class="bi bi-star-fill"></i> Destacados</h2>
-        <a class="small text-decoration-none" href="{% url 'catalogo' %}?ordenar=-precio">Ver más →</a>
-      </div>
-
-      <div class="row row-cols-2 row-cols-md-4 g-3">
-        {% for p in destacados %}
-          <div class="col">
-            <div class="card h-100 shadow-sm border-0">
-              {% if p.imagen %}
-                <img src="{{ p.imagen.url }}" class="card-img-top" alt="{{ p.nombre }}">
-              {% else %}
-                <img src="{% static 'images/placeholder.png' %}" class="card-img-top" alt="{{ p.nombre }}">
-              {% endif %}
-
-              <div class="card-body d-flex flex-column">
-                <h6 class="card-title text-truncate mb-1">{{ p.nombre }}</h6>
-                <p class="text-muted small mb-2">{{ p.marca.nombre }}</p>
-                {% if p.precio_oferta %}
-                  <div>
-                    <span class="text-danger fw-bold">{{ p.precio_oferta }} €</span>
-                    <span class="text-muted text-decoration-line-through small">{{ p.precio }} €</span>
-                  </div>
-                {% else %}
-                  <div class="fw-bold text-primary">{{ p.precio }} €</div>
-                {% endif %}
-                <div class="mt-auto pt-2">
-                  {% if p.esta_disponible and p.stock > 0 %}
-                    <button type="button"
-                            class="btn btn-outline-primary btn-sm w-100"
-                            data-producto-id="{{ p.id }}"
-                            onclick="CarritoAPI.agregar(this.dataset.productoId, 1)">
-                      <i class="bi bi-cart-plus"></i> Añadir
-                    </button>
-                  {% else %}
-                    <span class="badge bg-secondary w-100 py-2">Sin stock</span>
-                  {% endif %}
+    <div class="modal fade" id="destacadosModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title">
+              <i class="bi bi-star-fill me-2"></i> Productos destacados
+            </h5>
+            <button type="button" class="btn-close btn-close-white"
+                    data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted mb-3">
+              Una selección rápida de lo mejor de la tienda. Añade al carrito directamente o cierra para seguir navegando.
+            </p>
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+              {% for p in destacados %}
+                <div class="col">
+                  {% include "partials/product_card.html" with producto=p %}
                 </div>
-              </div>
+              {% endfor %}
             </div>
           </div>
-        {% endfor %}
+        </div>
       </div>
-    </section>
+    </div>
+
+    {# Botón flotante para volver a abrir el modal #}
+    <button type="button"
+            id="btnDestacadosFlotante"
+            class="btn btn-primary btn-lg rounded-pill shadow destacado-floating-btn"
+            data-bs-toggle="modal" data-bs-target="#destacadosModal">
+      <i class="bi bi-star-fill me-2"></i> Destacados
+    </button>
   {% endif %}
+
+  {# ==== TÍTULO CATÁLOGO NORMAL ==== #}
   <h1 class="mb-4 text-center fw-bold text-primary">
     <i class="bi bi-shop"></i> Catálogo de Productos
   </h1>
 
-  <!-- Barra de búsqueda y filtros -->
+  {# ==== BÚSQUEDA Y FILTROS (igual que antes) ==== #}
   <form method="get" class="row g-3 mb-4 align-items-end">
     <div class="col-md-4">
       <label for="q" class="form-label fw-semibold">Buscar</label>
@@ -97,41 +88,11 @@
     </div>
   </form>
 
-  <!-- Grid de productos -->
+  {# ==== GRID DE PRODUCTOS ==== #}
   <div class="row row-cols-2 row-cols-md-4 g-4">
     {% for p in page_obj.object_list %}
       <div class="col">
-        <div class="card h-100 shadow-sm border-0">
-        {% if p.imagen %}
-          <img src="{{ p.imagen.url|default:'/static/images/placeholder.png' }}" class="card-img-top" alt="{{ p.nombre }}">
-        {% else %}
-          <img src="/static/images/placeholder.png" class="card-img-top" alt="Imagen no disponible">
-        {% endif %}
-          <div class="card-body d-flex flex-column justify-content-between">
-            <div>
-              <h5 class="card-title text-truncate">{{ p.nombre }}</h5>
-              <p class="text-muted small mb-2">{{ p.marca.nombre }} • {{ p.categoria.nombre }}</p>
-              {% if p.precio_oferta %}
-                <p class="mb-0">
-                  <span class="text-danger fw-bold">{{ p.precio_oferta }} €</span>
-                  <span class="text-muted text-decoration-line-through small">{{ p.precio }} €</span>
-                </p>
-              {% else %}
-                <p class="fw-bold text-primary mb-0">{{ p.precio }} €</p>
-              {% endif %}
-            </div>
-            <div class="mt-3">
-              {% if p.esta_disponible and p.stock > 0 %}
-                <button type="button" class="btn btn-primary btn-sm w-100"
-                        onclick="CarritoAPI.agregar({{ p.id }}, 1)">
-                  <i class="bi bi-cart-plus"></i> Añadir al carrito
-                </button>
-              {% else %}
-                <span class="badge bg-secondary w-100 py-2">Sin stock</span>
-              {% endif %}
-            </div>
-          </div>
-        </div>
+        {% include "partials/product_card.html" with producto=p %}
       </div>
     {% empty %}
       <div class="text-center text-muted py-5">
@@ -141,7 +102,7 @@
     {% endfor %}
   </div>
 
-  <!-- Paginación -->
+  {# ==== PAGINACIÓN ==== #}
   {% if page_obj.paginator.num_pages > 1 %}
   <nav class="mt-4 d-flex justify-content-center">
     <ul class="pagination">
@@ -161,3 +122,45 @@
   {% endif %}
 </div>
 {% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  {% if destacados %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const modalEl = document.getElementById('destacadosModal');
+      if (!modalEl) return;
+
+      const destacadosModal = new bootstrap.Modal(modalEl);
+
+      const params = new URLSearchParams(window.location.search);
+      const page = params.get('page') || '1';
+
+      // Claves de filtros que usas en el formulario
+      const filtrosKeys = ['q', 'marca', 'categoria', 'genero', 'ordenar'];
+
+      // ¿Hay algún filtro activo?
+      const tieneFiltrosActivos = filtrosKeys.some(function (clave) {
+        const valor = params.get(clave);
+        return valor !== null && valor !== '';
+      });
+
+      // Permite desactivar con ?sin_destacados=1 si quisieras
+      const noMostrarParam = params.has('sin_destacados');
+
+      if (page === '1' && !tieneFiltrosActivos && !noMostrarParam) {
+        destacadosModal.show();
+      }
+
+      // Botón flotante "Destacados"
+      const btnFlotante = document.getElementById('btnDestacadosFlotante');
+      if (btnFlotante) {
+        btnFlotante.addEventListener('click', function () {
+          destacadosModal.show();
+        });
+      }
+    });
+  </script>
+  {% endif %}
+{% endblock %}
+
