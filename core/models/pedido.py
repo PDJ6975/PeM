@@ -237,10 +237,11 @@ class Pedido(models.Model):
         base_url = getattr(settings, "SITE_URL", "http://localhost:8000")
         return f"{base_url}/seguimiento/{self.tracking_token}/"
 
-    def enviar_correo_confirmacion(self):
+    def enviar_correo_confirmacion(self, email_stripe=None, request=None):
         """
         Envía un correo de confirmación al cliente con número de pedido y tracking token.
         """
+
         try:
             # Contexto para la plantilla
             context = {
@@ -259,12 +260,19 @@ class Pedido(models.Model):
 
             from_email = f"{getattr(settings, 'EMAIL_FROM_NAME', 'PeM Store Notifications')} <{settings.DEFAULT_FROM_EMAIL}>"
             
+            if request.user.is_authenticated:
+                print("usuario autenticado")
+                destinatario = self.cliente.email
+            else:
+                print("usuario no autenticado")
+                destinatario = email_stripe
+            
             # Enviar email
             send_mail(
                 subject=f'Confirmación de Pedido #{self.numero_pedido} - PeM',
                 message=plain_message,
                 from_email=from_email,
-                recipient_list=[self.cliente.email],
+                recipient_list=[destinatario],
                 html_message=html_message,
                 fail_silently=False,
             )

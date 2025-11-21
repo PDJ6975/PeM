@@ -884,14 +884,6 @@ def _crear_pedido_desde_carrito(*,
     pedido.subtotal = subtotal.quantize(Decimal("0.01"))
     pedido.save()
 
-    try:
-        pedido.enviar_correo_confirmacion()
-    except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"No se pudo enviar email de confirmación: {e}")
-        # No interrumpimos el proceso si falla el email
-
     return pedido
 
 def _obtener_carrito_desde_session_o_django(request, stripe_session):
@@ -953,8 +945,18 @@ def checkout_success(request):
         cliente=cliente,
         carrito=carrito,
         stripe_session=session,
-        payment_intent=payment_intent,
+        payment_intent=payment_intent
     )
+
+    raw_email = session.customer_details.email
+    email = raw_email.lower()
+    print("este es el correo")
+    print(email)
+
+    try:
+        pedido.enviar_correo_confirmacion(email_stripe=email, request=request)
+    except Exception as e:
+        logger.error(f"No se pudo enviar email de confirmación: {e}")
 
     # 5) Vaciar carrito
     _vaciar_y_cerrar_carrito(request, carrito)
@@ -1041,6 +1043,15 @@ def checkout_cod(request):
             direccion_envio_override=direccion_envio_str,   
             telefono_override=telefono or "600000000",       
         )
+
+    email = request.user.email
+    print("este es el correo")
+    print(email)
+
+    try:
+        pedido.enviar_correo_confirmacion(email_stripe=email, request=request)
+    except Exception as e:
+        logger.error(f"No se pudo enviar email de confirmación: {e}")
 
     _vaciar_y_cerrar_carrito(request, carrito)
 
