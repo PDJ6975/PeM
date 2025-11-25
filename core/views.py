@@ -950,8 +950,6 @@ def checkout_success(request):
 
     raw_email = session.customer_details.email
     email = raw_email.lower()
-    print("este es el correo")
-    print(email)
 
     try:
         pedido.enviar_correo_confirmacion(email_stripe=email, request=request)

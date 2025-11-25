@@ -260,12 +260,12 @@ class Pedido(models.Model):
 
             from_email = f"{getattr(settings, 'EMAIL_FROM_NAME', 'PeM Store Notifications')} <{settings.DEFAULT_FROM_EMAIL}>"
             
-            if request.user.is_authenticated:
-                print("usuario autenticado")
+            if request and hasattr(request, "user") and getattr(request.user, "is_authenticated", False):
                 destinatario = self.cliente.email
-            else:
-                print("usuario no autenticado")
+            elif email_stripe:
                 destinatario = email_stripe
+            else:
+                destinatario = self.cliente.email
             
             # Enviar email
             send_mail(
