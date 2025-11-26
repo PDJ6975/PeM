@@ -3,11 +3,18 @@
 
 <div class="card card-producto h-100 shadow-sm border-0">
 
-  {% if producto.imagen %}
+  <!-- {% if producto.imagen %}
     <img src="{{ producto.imagen.url }}" class="card-img-top card-producto-img" alt="{{ producto.nombre }}">
   {% else %}
     <img src="{% static 'images/placeholder.png' %}" class="card-img-top card-producto-img" alt="{{ producto.nombre }}">
+  {% endif %} -->
+
+  {% if producto.imagen %}
+    <img src="{{ MEDIA_EXTERNAL_URL }}{{ producto.imagen }}" class="card-img-top card-producto-img" alt="{{ producto.nombre }}">
+  {% else %}
+    <img src="{% static 'images/placeholder.png' %}" class="card-img-top card-producto-img" alt="{{ producto.nombre }}">
   {% endif %}
+
 
   <div class="card-body d-flex flex-column justify-content-between">
     <div>
