@@ -10,7 +10,7 @@
   {% endif %} -->
 
 {% if producto.imagen %}
-  <img src="{{ MEDIA_EXTERNAL_URL }}/{{ producto.imagen.name|cut:'media/' }}" 
+  <img src="{{ MEDIA_EXTERNAL_URL }}/{{ producto.imagen.name|cut:'productos/' }}" 
        class="card-img-top card-producto-img" 
        alt="{{ producto.nombre }}">
 {% else %}

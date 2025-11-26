@@ -22,34 +22,34 @@ def crear_datos_iniciales(apps, schema_editor):
     # Lista de productos iniciales
     productos = [
         # --- Juguetes ---
-        dict(nombre='Pelota Kong Classic', descripcion='Pelota resistente para perro', marca=marca_kong, categoria=cat_juguetes, precio=9.99, precio_oferta=7.99, stock=25, es_destacado=True, imagen='../media/productos/Pelota_kong.webp'),
-        dict(nombre='Hueso Mordedor', descripcion='Hueso de goma duradera', marca=marca_kong, categoria=cat_juguetes, precio=5.50, stock=10, imagen='../media/productos/Hueso_mordedor.webp'),
-        dict(nombre='Cuerda de algodón', descripcion='Juguete de cuerda para limpiar dientes', marca=marca_trixie, categoria=cat_juguetes, precio=6.75, stock=30, imagen='../media/productos/Cuerda.webp'),
-        dict(nombre='Pelota con sonido', descripcion='Pelota con sonido interior, ideal para cachorros', marca=marca_trixie, categoria=cat_juguetes, precio=4.99, stock=20, imagen='../media/productos/Pelota_sonido.webp'),
-        dict(nombre='Aro mordedor Kong Flyer', descripcion='Aro volador resistente', marca=marca_kong, categoria=cat_juguetes, precio=12.90, stock=15, imagen='../media/productos/Aro_mordedor.webp'),
+        dict(nombre='Pelota Kong Classic', descripcion='Pelota resistente para perro', marca=marca_kong, categoria=cat_juguetes, precio=9.99, precio_oferta=7.99, stock=25, es_destacado=True, imagen='productos/Pelota_kong.webp'),
+        dict(nombre='Hueso Mordedor', descripcion='Hueso de goma duradera', marca=marca_kong, categoria=cat_juguetes, precio=5.50, stock=10, imagen='productos/Hueso_mordedor.webp'),
+        dict(nombre='Cuerda de algodón', descripcion='Juguete de cuerda para limpiar dientes', marca=marca_trixie, categoria=cat_juguetes, precio=6.75, stock=30, imagen='productos/Cuerda.webp'),
+        dict(nombre='Pelota con sonido', descripcion='Pelota con sonido interior, ideal para cachorros', marca=marca_trixie, categoria=cat_juguetes, precio=4.99, stock=20, imagen='productos/Pelota_sonido.webp'),
+        dict(nombre='Aro mordedor Kong Flyer', descripcion='Aro volador resistente', marca=marca_kong, categoria=cat_juguetes, precio=12.90, stock=15, imagen='productos/Aro_mordedor.webp'),
 
         # --- Comida ---
-        dict(nombre='Pienso Pedigree Adulto', descripcion='Pienso completo para perros adultos', marca=marca_pedigree, categoria=cat_comida, precio=24.99, stock=40, es_destacado=True, imagen='../media/productos/Pienso_adulto.webp'),
-        dict(nombre='Pienso Pedigree Cachorro', descripcion='Pienso nutritivo para cachorros', marca=marca_pedigree, categoria=cat_comida, precio=22.99, stock=35, imagen='../media/productos/Pienso_cachorro.webp'),
-        dict(nombre='Comida húmeda Royal Canin', descripcion='Comida húmeda para perros pequeños', marca=marca_royal, categoria=cat_comida, precio=15.20, stock=25, imagen='../media/productos/Comida_humeda.webp'),
-        dict(nombre='Snack de pollo deshidratado', descripcion='Snack natural de pollo para premios', marca=marca_natura, categoria=cat_comida, precio=6.80, stock=50, imagen='../media/productos/Snack.webp'),
-        dict(nombre='Barritas dentales Pedigree Dentastix', descripcion='Barritas para la higiene bucal diaria', marca=marca_pedigree, categoria=cat_comida, precio=8.50, stock=60, imagen='../media/productos/Barritas_dentales.webp'),
+        dict(nombre='Pienso Pedigree Adulto', descripcion='Pienso completo para perros adultos', marca=marca_pedigree, categoria=cat_comida, precio=24.99, stock=40, es_destacado=True, imagen='productos/Pienso_adulto.webp'),
+        dict(nombre='Pienso Pedigree Cachorro', descripcion='Pienso nutritivo para cachorros', marca=marca_pedigree, categoria=cat_comida, precio=22.99, stock=35, imagen='productos/Pienso_cachorro.webp'),
+        dict(nombre='Comida húmeda Royal Canin', descripcion='Comida húmeda para perros pequeños', marca=marca_royal, categoria=cat_comida, precio=15.20, stock=25, imagen='productos/Comida_humeda.webp'),
+        dict(nombre='Snack de pollo deshidratado', descripcion='Snack natural de pollo para premios', marca=marca_natura, categoria=cat_comida, precio=6.80, stock=50, imagen='productos/Snack.webp'),
+        dict(nombre='Barritas dentales Pedigree Dentastix', descripcion='Barritas para la higiene bucal diaria', marca=marca_pedigree, categoria=cat_comida, precio=8.50, stock=60, imagen='productos/Barritas_dentales.webp'),
 
         # --- Accesorios ---
-        dict(nombre='Correa extensible 5m', descripcion='Correa extensible de nailon resistente', marca=marca_trixie, categoria=cat_accesorios, precio=13.99, stock=18, imagen='../media/productos/Correa.webp'),
-        dict(nombre='Arnés ajustable', descripcion='Arnés acolchado para mayor comodidad', marca=marca_trixie, categoria=cat_accesorios, precio=17.50, stock=22, imagen='../media/productos/Arnes_ajustable.webp'),
-        dict(nombre='Collar luminoso LED', descripcion='Collar recargable ideal para paseos nocturnos', marca=marca_natura, categoria=cat_accesorios, precio=14.99, stock=15, es_destacado=True, imagen='../media/productos/Collar_luminoso.webp'),
-        dict(nombre='Comedero antideslizante', descripcion='Comedero de acero inoxidable con base antideslizante', marca=marca_trixie, categoria=cat_accesorios, precio=9.20, stock=25, imagen='../media/productos/Comedero.webp'),
-        dict(nombre='Botella portátil de agua', descripcion='Botella plegable para paseos y viajes', marca=marca_trixie, categoria=cat_accesorios, precio=8.99, stock=30, imagen='../media/productos/Botella_portatil.webp'),
+        dict(nombre='Correa extensible 5m', descripcion='Correa extensible de nailon resistente', marca=marca_trixie, categoria=cat_accesorios, precio=13.99, stock=18, imagen='productos/Correa.webp'),
+        dict(nombre='Arnés ajustable', descripcion='Arnés acolchado para mayor comodidad', marca=marca_trixie, categoria=cat_accesorios, precio=17.50, stock=22, imagen='productos/Arnes_ajustable.webp'),
+        dict(nombre='Collar luminoso LED', descripcion='Collar recargable ideal para paseos nocturnos', marca=marca_natura, categoria=cat_accesorios, precio=14.99, stock=15, es_destacado=True, imagen='productos/Collar_luminoso.webp'),
+        dict(nombre='Comedero antideslizante', descripcion='Comedero de acero inoxidable con base antideslizante', marca=marca_trixie, categoria=cat_accesorios, precio=9.20, stock=25, imagen='productos/Comedero.webp'),
+        dict(nombre='Botella portátil de agua', descripcion='Botella plegable para paseos y viajes', marca=marca_trixie, categoria=cat_accesorios, precio=8.99, stock=30, imagen='productos/Botella_portatil.webp'),
 
         # --- Higiene ---
-        dict(nombre='Champú natural para perro', descripcion='Champú con avena y aloe vera', marca=marca_natura, categoria=cat_higiene, precio=11.50, stock=20, imagen='../media/productos/Champu.webp'),
-        dict(nombre='Toallitas húmedas Trixie', descripcion='Toallitas para limpieza diaria', marca=marca_trixie, categoria=cat_higiene, precio=5.99, stock=40, imagen='../media/productos/Toallitas_humedas.webp'),
-        dict(nombre='Cepillo doble', descripcion='Cepillo para desenredar y dar brillo', marca=marca_trixie, categoria=cat_higiene, precio=7.49, stock=25, imagen='../media/productos/Cepillo_doble.webp'),
+        dict(nombre='Champú natural para perro', descripcion='Champú con avena y aloe vera', marca=marca_natura, categoria=cat_higiene, precio=11.50, stock=20, imagen='productos/Champu.webp'),
+        dict(nombre='Toallitas húmedas Trixie', descripcion='Toallitas para limpieza diaria', marca=marca_trixie, categoria=cat_higiene, precio=5.99, stock=40, imagen='productos/Toallitas_humedas.webp'),
+        dict(nombre='Cepillo doble', descripcion='Cepillo para desenredar y dar brillo', marca=marca_trixie, categoria=cat_higiene, precio=7.49, stock=25, imagen='productos/Cepillo_doble.webp'),
 
         # --- Descanso ---
-        dict(nombre='Cama ovalada acolchada', descripcion='Cama suave con forro extraíble', marca=marca_trixie, categoria=cat_descanso, precio=34.90, stock=10, es_destacado=True, imagen='../media/productos/Cama_acolchada.webp'),
-        dict(nombre='Manta polar', descripcion='Manta polar lavable para mascotas', marca=marca_trixie, categoria=cat_descanso, precio=12.99, stock=25, imagen='../media/productos/Manta.webp'),
+        dict(nombre='Cama ovalada acolchada', descripcion='Cama suave con forro extraíble', marca=marca_trixie, categoria=cat_descanso, precio=34.90, stock=10, es_destacado=True, imagen='productos/Cama_acolchada.webp'),
+        dict(nombre='Manta polar', descripcion='Manta polar lavable para mascotas', marca=marca_trixie, categoria=cat_descanso, precio=12.99, stock=25, imagen='productos/Manta.webp'),
     ]
 
     for datos in productos:
