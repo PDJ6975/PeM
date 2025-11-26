@@ -143,6 +143,7 @@ SITE_URL = "http://127.0.0.1:8000"
 DEFAULT_FROM_EMAIL = "no-reply@pem.com"
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+MEDIA_EXTERNAL_URL = "https://raw.githubusercontent.com/pabolimor99/pem-media/main/productos/"
 
 
 import environ
