@@ -10,16 +10,14 @@
   {% endif %} -->
 
 {% if producto.imagen %}
-  {% if producto.imagen.name.startswith:"http" %}
-    <img src="{{ producto.imagen.name }}" class="card-img-top card-producto-img" alt="{{ producto.nombre }}">
-  {% else %}
-    <img src="{{ MEDIA_EXTERNAL_URL }}/{{ producto.imagen.name|cut:'media/' }}" class="card-img-top card-producto-img" alt="{{ producto.nombre }}">
-  {% endif %}
+  <img src="{{ MEDIA_EXTERNAL_URL }}/{{ producto.imagen.name|cut:'media/' }}" 
+       class="card-img-top card-producto-img" 
+       alt="{{ producto.nombre }}">
 {% else %}
-  <img src="{% static 'images/placeholder.png' %}" class="card-img-top card-producto-img" alt="{{ producto.nombre }}">
+  <img src="{% static 'images/placeholder.png' %}" 
+       class="card-img-top card-producto-img" 
+       alt="{{ producto.nombre }}">
 {% endif %}
-
-
 
   <div class="card-body d-flex flex-column justify-content-between">
     <div>
