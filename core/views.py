@@ -976,50 +976,106 @@ def _vaciar_y_cerrar_carrito(request, carrito: Carrito):
         del request.session["carrito_id"]
 
 
+def _enviar_email_confirmacion_async(pedido_id, email, is_authenticated):
+    """
+    Función auxiliar para enviar email de confirmación en segundo plano.
+    Se ejecuta en un thread separado para no bloquear la respuesta HTTP.
+    """
+    try:
+        from django.db import connection
+        # Cerrar la conexión de DB heredada del thread principal
+        connection.close()
+
+        pedido = Pedido.objects.get(id=pedido_id)
+        logger.info(f"[Email Async] Enviando email para pedido {pedido.numero_pedido} a {email}")
+
+        # Enviar email con fail_silently=True dentro del método
+        pedido.enviar_correo_confirmacion(email_stripe=email, request=None)
+
+        logger.info(f"[Email Async] Email enviado exitosamente para pedido {pedido.numero_pedido}")
+    except Pedido.DoesNotExist:
+        logger.error(f"[Email Async] Pedido {pedido_id} no encontrado")
+    except Exception as e:
+        logger.error(f"[Email Async] Error enviando email para pedido {pedido_id}: {e}", exc_info=True)
+
+
 def checkout_success(request):
     """URL: /checkout/success?session_id=...  (sin webhook)
     Crea el pedido si el pago está OK y el carrito existe.
     """
     session_id = request.GET.get("session_id")
     if not session_id:
+        logger.warning("[Checkout Success] Falta session_id en la URL")
         return HttpResponseBadRequest("Falta session_id")
+
+    logger.info(f"[Checkout Success] Procesando session_id: {session_id}")
 
     # 1) Consultar Stripe para verificar el pago
     try:
         session = stripe.checkout.Session.retrieve(session_id, expand=["payment_intent"])
+        logger.info(f"[Checkout Success] Sesión recuperada. Payment status: {session.payment_status}")
     except Exception as e:
+        logger.error(f"[Checkout Success] Error recuperando sesión de Stripe: {e}", exc_info=True)
         return HttpResponseBadRequest(f"No se pudo recuperar la sesión de Stripe: {e}")
 
     if session.payment_status != "paid":
+        logger.warning(f"[Checkout Success] Pago no completado. Status: {session.payment_status}")
         return HttpResponseBadRequest("El pago no está marcado como 'paid' por Stripe.")
 
     payment_intent = session.payment_intent
 
+    # 1.5) Verificar si ya existe un pedido con este stripe_session_id (prevenir duplicados)
+    pedido_existente = Pedido.objects.filter(stripe_session_id=session_id).first()
+    if pedido_existente:
+        logger.info(f"[Checkout Success] Pedido ya existe: {pedido_existente.numero_pedido}. Mostrando pedido existente.")
+        ctx = {
+            "pedido": pedido_existente,
+            "tracking": pedido_existente.tracking_token,
+            "session_id": session.id,
+        }
+        return render(request, "core/checkout_success.html", ctx)
+
     # 2) Resolver carrito
     carrito = _obtener_carrito_desde_session_o_django(request, session)
     if not carrito:
+        logger.error("[Checkout Success] No se encontró el carrito")
         return HttpResponseBadRequest("No he encontrado el carrito de la compra.")
+
+    logger.info(f"[Checkout Success] Carrito encontrado: {carrito.id}")
 
     # 3) Resolver cliente (logueado o invitado desde datos de Stripe)
     cliente = _buscar_o_crear_cliente_desde_stripe(request, getattr(session, "customer_details", None))
+    logger.info(f"[Checkout Success] Cliente: {cliente.email}")
 
     # 4) Crear pedido y líneas
+    logger.info("[Checkout Success] Creando pedido...")
     pedido = _crear_pedido_desde_carrito(
         cliente=cliente,
         carrito=carrito,
         stripe_session=session,
         payment_intent=payment_intent
     )
+    logger.info(f"[Checkout Success] Pedido creado: {pedido.numero_pedido}")
 
+    # 5) Enviar email de confirmación (en segundo plano, no bloqueante)
     raw_email = session.customer_details.email
     email = raw_email.lower()
 
+    logger.info(f"[Checkout Success] Intentando enviar email a: {email}")
     try:
-        pedido.enviar_correo_confirmacion(email_stripe=email, request=request)
+        # Usar threading para no bloquear la respuesta
+        import threading
+        email_thread = threading.Thread(
+            target=_enviar_email_confirmacion_async,
+            args=(pedido.id, email, request.user.is_authenticated)
+        )
+        email_thread.start()
+        logger.info("[Checkout Success] Thread de email iniciado")
     except Exception as e:
-        logger.error(f"No se pudo enviar email de confirmación: {e}")
+        logger.error(f"[Checkout Success] Error iniciando thread de email: {e}", exc_info=True)
 
-    # 5) Vaciar carrito
+    # 6) Vaciar carrito
+    logger.info("[Checkout Success] Vaciando carrito...")
     _vaciar_y_cerrar_carrito(request, carrito)
 
     if not request.user.is_authenticated:
@@ -1030,10 +1086,11 @@ def checkout_success(request):
         }
         logger.info(f"[Checkout Success] Acceso temporal guardado para pedido {pedido.numero_pedido}")
 
-    # 6) Mostrar pantalla de éxito / devolver JSON
+    # 7) Mostrar pantalla de éxito
+    logger.info(f"[Checkout Success] Renderizando template de éxito para pedido {pedido.numero_pedido}")
     ctx = {
         "pedido": pedido,
-        "tracking": pedido.tracking_token, 
+        "tracking": pedido.tracking_token,
         "session_id": session.id,
     }
     return render(request, "core/checkout_success.html", ctx)

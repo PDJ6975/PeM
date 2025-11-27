@@ -171,6 +171,8 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+EMAIL_TIMEOUT = 10  # Timeout de 10 segundos para conexiones SMTP
 EMAIL_HOST_USER = 'apikey'
 EMAIL_HOST_PASSWORD = env.str('SENDGRID_API_KEY')
 DEFAULT_FROM_EMAIL = env.str('EMAIL_FROM', default='noreply@pem.com')
