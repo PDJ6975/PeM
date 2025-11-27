@@ -95,9 +95,7 @@
               {% if pedido.impuestos %}
                 <p class="mb-2">Impuestos:</p>
               {% endif %}
-              {% if pedido.coste_entrega %}
-                <p class="mb-2">Envío:</p>
-              {% endif %}
+              <p class="mb-2">Envío:{% if pedido.coste_entrega == 0 %} <span class="badge bg-success">GRATIS</span>{% endif %}</p>
               {% if pedido.descuento %}
                 <p class="mb-2 text-success">Descuento:</p>
               {% endif %}
@@ -108,9 +106,7 @@
               {% if pedido.impuestos %}
                 <p class="mb-2">{{ pedido.impuestos }} €</p>
               {% endif %}
-              {% if pedido.coste_entrega %}
-                <p class="mb-2">{{ pedido.coste_entrega }} €</p>
-              {% endif %}
+              <p class="mb-2">{{ pedido.coste_entrega }} €</p>
               {% if pedido.descuento %}
                 <p class="mb-2 text-success">-{{ pedido.descuento }} €</p>
               {% endif %}

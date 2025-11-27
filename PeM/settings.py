@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from decimal import Decimal
 import dj_database_url
 import os
 
@@ -175,3 +176,7 @@ EMAIL_HOST_PASSWORD = env.str('SENDGRID_API_KEY')
 DEFAULT_FROM_EMAIL = env.str('EMAIL_FROM', default='noreply@pem.com')
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 EMAIL_FROM_NAME = 'PeM Store Notifications'
+
+# Configuración de costes de envío
+COSTE_ENVIO_ESTANDAR = Decimal('4.95')  
+IMPORTE_ENVIO_GRATUITO = Decimal('50.00')  

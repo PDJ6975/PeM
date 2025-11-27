@@ -373,6 +373,31 @@
                     {% endfor %}
                 </tbody>
                 <tfoot>
+                    <tr>
+                        <td colspan="2" class="text-right">Subtotal:</td>
+                        <td class="text-right">{{ pedido.subtotal }} €</td>
+                    </tr>
+                    {% if pedido.impuestos %}
+                    <tr>
+                        <td colspan="2" class="text-right">Impuestos:</td>
+                        <td class="text-right">{{ pedido.impuestos }} €</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <td colspan="2" class="text-right">
+                            Envío:
+                            {% if pedido.coste_entrega == 0 %}
+                            <span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 6px;">GRATIS</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-right">{{ pedido.coste_entrega }} €</td>
+                    </tr>
+                    {% if pedido.descuento %}
+                    <tr>
+                        <td colspan="2" class="text-right" style="color: #10b981;">Descuento:</td>
+                        <td class="text-right" style="color: #10b981;">-{{ pedido.descuento }} €</td>
+                    </tr>
+                    {% endif %}
                     <tr class="total-row">
                         <td colspan="2" class="text-right"><strong>Total:</strong></td>
                         <td class="text-right"><strong>{{ pedido.total }} €</strong></td>

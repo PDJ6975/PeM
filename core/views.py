@@ -15,6 +15,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Prefetch
 from django.db import transaction
 from django.utils import timezone
+from decimal import Decimal
 
 from core.services.catalogo import buscar_productos, obtener_productos_destacados
 from core.models import Producto
@@ -641,6 +642,7 @@ def _build_line_items(carrito_id):
     """
     Convierte los ItemCarrito a line_items de Stripe.
     Usa Producto.precio_actual() para reflejar oferta si aplica.
+    Incluye los gastos de envío como un line item adicional (aplicando lógica de envío gratuito).
     Acepta un ID de carrito (int) o instancia; aquí usamos ID.
     """
     items = (
@@ -648,10 +650,16 @@ def _build_line_items(carrito_id):
         .select_related("producto")
         .filter(carrito=carrito_id)
     )
+
     line_items = []
+    subtotal = Decimal('0.00')
+
+    # Construir line items de productos y calcular subtotal
     for it in items:
         producto = it.producto
-        unit_amount = int(Decimal(producto.precio_actual()) * 100)  # céntimos
+        precio_unitario = Decimal(producto.precio_actual())
+        unit_amount = int(precio_unitario * 100)  # céntimos
+
         line_items.append({
             "price_data": {
                 "currency": "eur",
@@ -662,6 +670,28 @@ def _build_line_items(carrito_id):
             },
             "quantity": it.cantidad,
         })
+
+        subtotal += precio_unitario * it.cantidad
+
+    # Calcular coste de envío basándose en el subtotal 
+    coste_envio = _calcular_coste_envio(subtotal)
+    coste_estandar = getattr(settings, 'COSTE_ENVIO_ESTANDAR', Decimal('4.95'))
+    importe_minimo = getattr(settings, 'IMPORTE_ENVIO_GRATUITO', Decimal('50.00'))
+
+    nombre_envio = "Gastos de envío"
+
+    line_items.append({
+        "price_data": {
+            "currency": "eur",
+            "product_data": {
+                "name": nombre_envio,
+                "description": f"Envío estándar: {coste_estandar}€. Gratis a partir de {importe_minimo}€" if coste_envio == 0 else None,
+            },
+            "unit_amount": int(coste_envio * 100), 
+        },
+        "quantity": 1,
+    })
+
     return line_items
 
 @csrf_exempt
@@ -769,7 +799,27 @@ def _fmt_direccion(customer_details):
 
 def _precio_actual(producto: Producto) -> Decimal:
     """Refleja oferta si aplica (según tu modelo Producto)."""
-    return producto.precio_actual() 
+    return producto.precio_actual()
+
+
+def _calcular_coste_envio(subtotal: Decimal) -> Decimal:
+    """
+    Calcula el coste de envío basándose en el subtotal del pedido.
+    Envío gratuito si el subtotal supera el importe mínimo configurado.
+
+    Args:
+        subtotal: Subtotal del carrito/pedido (sin gastos de envío)
+
+    Returns:
+        Decimal: Coste de envío (0.00 si es gratuito)
+    """
+    importe_minimo = getattr(settings, 'IMPORTE_ENVIO_GRATUITO', Decimal('50.00'))
+    coste_estandar = getattr(settings, 'COSTE_ENVIO_ESTANDAR', Decimal('4.95'))
+
+    if subtotal >= importe_minimo:
+        return Decimal('0.00')
+
+    return coste_estandar 
 
 
 def _buscar_o_crear_cliente_desde_stripe(request, customer_details):
@@ -857,20 +907,30 @@ def _crear_pedido_desde_carrito(*,
         or "600000000"
     )
 
+    # Calcular subtotal primero
+    for it in items:
+        prod = it.producto
+        precio_u = _precio_actual(prod)
+        subtotal += (precio_u * it.cantidad)
+
+    # Calcular coste de envío basándose en el subtotal (puede ser 0 si es gratuito)
+    coste_envio = _calcular_coste_envio(subtotal)
+
     pedido = Pedido.objects.create(
         cliente=cliente,
         estado="confirmado",
         subtotal=Decimal("0.00"),
         impuestos=Decimal("0.00"),
-        coste_entrega=Decimal("0.00"),
+        coste_entrega=coste_envio,
         descuento=Decimal("0.00"),
         total=Decimal("0.00"),
         direccion_envio=direccion_envio,
         telefono=telefono,
-        stripe_session_id=getattr(stripe_session, "id", None),                
-        stripe_payment_intent_id=getattr(payment_intent, "id", None),        
+        stripe_session_id=getattr(stripe_session, "id", None),
+        stripe_payment_intent_id=getattr(payment_intent, "id", None),
     )
 
+    # Crear items del pedido y descontar stock
     for it in items:
         prod = it.producto
         precio_u = _precio_actual(prod)
@@ -883,8 +943,6 @@ def _crear_pedido_desde_carrito(*,
         if prod.stock is not None:
             prod.stock = max(0, prod.stock - it.cantidad)
             prod.save()
-
-        subtotal += (precio_u * it.cantidad)
 
     pedido.subtotal = subtotal.quantize(Decimal("0.01"))
     pedido.save()
