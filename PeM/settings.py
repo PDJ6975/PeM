@@ -167,14 +167,20 @@ STRIPE_SUCCESS_URL = f"{SITE_URL}/checkout/success?session_id={{CHECKOUT_SESSION
 STRIPE_CANCEL_URL  = f"{SITE_URL}/checkout/cancelled"
 
 # Email configuration (SendGrid)
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# En tests, usar backend en memoria para evitar intentos de conexión SMTP
+import sys
+if 'test' in sys.argv:
+    EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
 EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 EMAIL_TIMEOUT = 10  # Timeout de 10 segundos para conexiones SMTP
 EMAIL_HOST_USER = 'apikey'
-EMAIL_HOST_PASSWORD = env.str('SENDGRID_API_KEY')
+EMAIL_HOST_PASSWORD = env.str('SENDGRID_API_KEY', default='')
 DEFAULT_FROM_EMAIL = env.str('EMAIL_FROM', default='noreply@pem.com')
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 EMAIL_FROM_NAME = 'PeM Store Notifications'
