@@ -140,8 +140,6 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-SITE_URL = "http://127.0.0.1:8000"
-DEFAULT_FROM_EMAIL = "no-reply@pem.com"
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_EXTERNAL_URL = "https://raw.githubusercontent.com/pabolimor99/pem-media/main/productos"
@@ -161,8 +159,11 @@ STRIPE_PUBLIC_KEY = env('STRIPE_PUBLIC_KEY')
 STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY')
 STRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET')
 
-STRIPE_SUCCESS_URL = "http://localhost:8000/checkout/success?session_id={CHECKOUT_SESSION_ID}"
-STRIPE_CANCEL_URL  = "http://localhost:8000/checkout/cancelled"
+# Obtener SITE_URL primero para usarlo en las URLs de Stripe
+SITE_URL = env.str('SITE_URL', default='http://localhost:8000')
+
+STRIPE_SUCCESS_URL = f"{SITE_URL}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}"
+STRIPE_CANCEL_URL  = f"{SITE_URL}/checkout/cancelled"
 
 # Email configuration (SendGrid)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -174,4 +175,3 @@ EMAIL_HOST_PASSWORD = env.str('SENDGRID_API_KEY')
 DEFAULT_FROM_EMAIL = env.str('EMAIL_FROM', default='noreply@pem.com')
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 EMAIL_FROM_NAME = 'PeM Store Notifications'
-SITE_URL = env.str('SITE_URL', default='http://localhost:8000')
