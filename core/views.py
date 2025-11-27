@@ -13,6 +13,7 @@ from django.contrib.auth import logout
 from django.contrib.auth import login as django_login
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Prefetch
+from django.db import transaction
 from django.utils import timezone
 
 from core.services.catalogo import buscar_productos, obtener_productos_destacados
@@ -147,20 +148,22 @@ class CarritoBaseView(View):
 
             if carrito_anonimo_id:
                 try:
-                    # Bloquear el carrito anónimo para evitar race conditions
-                    carrito_anonimo = Carrito.objects.select_for_update().get(
-                        id=carrito_anonimo_id,
-                        cliente__isnull=True
-                    )
+                    # Usar transacción atómica para PostgreSQL
+                    with transaction.atomic():
+                        # Bloquear el carrito anónimo para evitar race conditions
+                        carrito_anonimo = Carrito.objects.select_for_update().get(
+                            id=carrito_anonimo_id,
+                            cliente__isnull=True
+                        )
 
-                    if carrito:
-                        # Ya tiene carrito registrado: migrar productos del anónimo
-                        carrito_service.migrar_carrito(carrito_anonimo_id, request.user)
-                    else:
-                        # No tiene carrito registrado: convertir el anónimo en suyo
-                        carrito_anonimo.cliente = request.user
-                        carrito_anonimo.save()
-                        carrito = carrito_anonimo
+                        if carrito:
+                            # Ya tiene carrito registrado: migrar productos del anónimo
+                            carrito_service.migrar_carrito(carrito_anonimo_id, request.user)
+                        else:
+                            # No tiene carrito registrado: convertir el anónimo en suyo
+                            carrito_anonimo.cliente = request.user
+                            carrito_anonimo.save()
+                            carrito = carrito_anonimo
 
                     # Limpiar carrito anónimo de la sesión
                     del request.session['carrito_id']
@@ -485,22 +488,24 @@ class LoginView(View):
 
             if carrito_anonimo_id:
                 try:
-                    # Bloquear el carrito anónimo para evitar race conditions
-                    carrito_anonimo = Carrito.objects.select_for_update().get(
-                        id=carrito_anonimo_id,
-                        cliente__isnull=True
-                    )
+                    # Usar transacción atómica para PostgreSQL
+                    with transaction.atomic():
+                        # Bloquear el carrito anónimo para evitar race conditions
+                        carrito_anonimo = Carrito.objects.select_for_update().get(
+                            id=carrito_anonimo_id,
+                            cliente__isnull=True
+                        )
 
-                    # Buscar si el usuario ya tiene un carrito
-                    carrito_usuario = Carrito.objects.filter(cliente=cliente).first()
+                        # Buscar si el usuario ya tiene un carrito
+                        carrito_usuario = Carrito.objects.filter(cliente=cliente).first()
 
-                    if carrito_usuario:
-                        # Migrar productos del carrito anónimo al del usuario
-                        carrito_service.migrar_carrito(carrito_anonimo_id, cliente)
-                    else:
-                        # Convertir el carrito anónimo en el carrito del usuario
-                        carrito_anonimo.cliente = cliente
-                        carrito_anonimo.save()
+                        if carrito_usuario:
+                            # Migrar productos del carrito anónimo al del usuario
+                            carrito_service.migrar_carrito(carrito_anonimo_id, cliente)
+                        else:
+                            # Convertir el carrito anónimo en el carrito del usuario
+                            carrito_anonimo.cliente = cliente
+                            carrito_anonimo.save()
 
                     # Limpiar referencia del carrito anónimo en la sesión
                     del request.session['carrito_id']

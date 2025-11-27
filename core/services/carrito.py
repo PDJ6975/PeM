@@ -7,6 +7,7 @@ incluyendo agregar, modificar y eliminar productos.
 
 from django.db import transaction
 from django.core.exceptions import ValidationError
+from django.conf import settings
 from core.models import Carrito, ItemCarrito, Producto
 
 
@@ -23,6 +24,33 @@ class StockInsuficienteError(CarritoError):
 class ProductoNoDisponibleError(CarritoError):
     """Excepción cuando el producto no está disponible"""
     pass
+
+
+def _obtener_url_imagen_producto(producto):
+    """
+    Obtiene la URL de la imagen del producto.
+    Si MEDIA_EXTERNAL_URL está configurado, usa esa URL externa.
+    Sino, usa la URL local del archivo.
+
+    Args:
+        producto: Instancia del modelo Producto
+
+    Returns:
+        str: URL de la imagen o None si no tiene imagen
+    """
+    if not producto.imagen:
+        return None
+
+    media_external_url = getattr(settings, 'MEDIA_EXTERNAL_URL', None)
+
+    if media_external_url:
+        # Usar URL externa (para producción en Render)
+        # Quitar "productos/" del nombre del archivo
+        nombre_archivo = producto.imagen.name.replace('productos/', '')
+        return f"{media_external_url}/{nombre_archivo}"
+    else:
+        # Usar URL local (para desarrollo)
+        return producto.imagen.url
 
 
 def obtener_o_crear_carrito(cliente=None, carrito_id=None):
@@ -126,7 +154,7 @@ def agregar_producto(carrito_id, producto_id, cantidad=1):
             'id': producto.id,
             'nombre': producto.nombre,
             'precio_unitario': producto.precio_actual(),
-            'imagen': producto.imagen.url if producto.imagen else None,
+            'imagen': _obtener_url_imagen_producto(producto),
         },
         'cantidad': item.cantidad,
         'subtotal': item.subtotal(),
@@ -267,7 +295,7 @@ def obtener_carrito_detallado(carrito_id):
                 'marca': item.producto.marca.nombre,
                 'precio_unitario': item.producto.precio_actual(),
                 'tiene_oferta': item.producto.tiene_oferta(),
-                'imagen': item.producto.imagen.url if item.producto.imagen else None,
+                'imagen': _obtener_url_imagen_producto(item.producto),
             },
             'cantidad': item.cantidad,
             'subtotal': item.subtotal(),
