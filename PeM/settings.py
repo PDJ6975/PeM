@@ -172,19 +172,15 @@ import sys
 if 'test' in sys.argv:
     EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 else:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_BACKEND = 'sendgrid_backend.SendgridBackend'
+    SENDGRID_API_KEY = env.str('SENDGRID_API_KEY', default='')
+    SENDGRID_SANDBOX_MODE_IN_DEBUG = False
+    SENDGRID_ECHO_TO_STDOUT = False
 
-EMAIL_HOST = 'smtp.sendgrid.net'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_USE_SSL = False
-EMAIL_TIMEOUT = 10  # Timeout de 10 segundos para conexiones SMTP
-EMAIL_HOST_USER = 'apikey'
-EMAIL_HOST_PASSWORD = env.str('SENDGRID_API_KEY', default='')
 DEFAULT_FROM_EMAIL = env.str('EMAIL_FROM', default='noreply@pem.com')
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 EMAIL_FROM_NAME = 'PeM Store Notifications'
 
 # Configuración de costes de envío
 COSTE_ENVIO_ESTANDAR = Decimal('4.95')  
-IMPORTE_ENVIO_GRATUITO = Decimal('50.00')  
+IMPORTE_ENVIO_GRATUITO = Decimal('50.00')
